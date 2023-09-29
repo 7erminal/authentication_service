@@ -1,0 +1,292 @@
+swagger: "2.0"
+info:
+  title: beego Test API
+  description: |
+    beego has a very cool tools to autogenerate documents for your API
+  version: 1.0.0
+  termsOfService: http://beego.me/
+  contact:
+    email: astaxie@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: /v1
+paths:
+  /auth/:
+    post:
+      tags:
+      - auth
+      description: |-
+        create Authentication
+        <br>
+      operationId: AuthenticationController.Create
+      parameters:
+      - in: body
+        name: body
+        description: body for Authentication content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuthenticationDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
+  /auth/sign-up:
+    post:
+      tags:
+      - auth
+      description: |-
+        Sign up
+        <br>
+      operationId: AuthenticationController.SignUp
+      parameters:
+      - in: body
+        name: body
+        description: body for SignUp content
+        required: true
+        schema:
+          $ref: '#/definitions/models.SignUpDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
+  /users/:
+    get:
+      tags:
+      - users
+      description: |-
+        get Users
+        <br>
+      operationId: UsersController.Get All
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Users'
+        "403":
+          description: ""
+    post:
+      tags:
+      - users
+      description: |-
+        create Users
+        <br>
+      operationId: UsersController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for Users content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Users'
+      responses:
+        "201":
+          description: '{int} models.Users'
+        "403":
+          description: body is empty
+  /users/{id}:
+    get:
+      tags:
+      - users
+      description: |-
+        get Users by id
+        <br>
+      operationId: UsersController.Get One
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Users'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - users
+      description: |-
+        update the Users
+        <br>
+      operationId: UsersController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Users content
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateUserRequestDTO'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - users
+      description: |-
+        delete the Users
+        <br>
+      operationId: UsersController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+definitions:
+  models.AuthenticationDTO:
+    title: AuthenticationDTO
+    type: object
+    properties:
+      Password:
+        type: string
+      Username:
+        type: string
+  models.SignUpDTO:
+    title: SignUpDTO
+    type: object
+    properties:
+      Dob:
+        type: string
+      Email:
+        type: string
+      Gender:
+        type: string
+      Name:
+        type: string
+      Password:
+        type: string
+  models.UpdateUserRequestDTO:
+    title: UpdateUserRequestDTO
+    type: object
+    properties:
+      Address:
+        type: string
+      Dob:
+        type: string
+      FullName:
+        type: string
+      Gender:
+        type: string
+      MaritalStatus:
+        type: string
+      PhoneNumber:
+        type: string
+      Username:
+        type: string
+  models.UserResponseDTO:
+    title: UserResponseDTO
+    type: object
+    properties:
+      StatusCode:
+        type: integer
+        format: int64
+      StatusDesc:
+        type: string
+      User:
+        $ref: '#/definitions/models.Users'
+  models.Users:
+    title: Users
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      Address:
+        type: string
+      CreatedBy:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      Dob:
+        type: string
+        format: datetime
+      Email:
+        type: string
+      FullName:
+        type: string
+      Gender:
+        type: string
+      IdNumber:
+        type: string
+      IdType:
+        type: string
+      IsVerified:
+        type: boolean
+      MaritalStatus:
+        type: string
+      ModifiedBy:
+        type: integer
+        format: int64
+      Password:
+        type: string
+      PhoneNumber:
+        type: string
+      UserId:
+        type: integer
+        format: int64
+      UserType:
+        type: integer
+        format: int64
+      Username:
+        type: string
+tags:
+- name: users
+  description: |
+    UsersController operations for Users
+- name: auth
+  description: |
+    AuthenticationController operations for Authentication
