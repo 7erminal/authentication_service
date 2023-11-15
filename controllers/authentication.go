@@ -41,6 +41,8 @@ func (c *AuthenticationController) Post() {
 			// If the two passwords don't match, return a 401 status
 			c.Data["json"] = err.Error()
 
+			logs.Error(err.Error())
+
 			var resp = models.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Incorrect password"}
 			c.Data["json"] = resp
 
@@ -51,6 +53,7 @@ func (c *AuthenticationController) Post() {
 			c.Data["json"] = resp
 		}
 	} else {
+		logs.Error(err.Error())
 		var resp = models.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Unidentified user"}
 		c.Data["json"] = resp
 	}
@@ -67,7 +70,7 @@ func (c *AuthenticationController) Post() {
 func (c *AuthenticationController) SignUp() {
 	var v models.SignUpDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
-	logs.Info("Received ", v.Password)
+	logs.Info("Received ", v)
 
 	hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.Password), 8)
 
@@ -85,7 +88,7 @@ func (c *AuthenticationController) SignUp() {
 	dobm, error := time.Parse("2006-01-02 15:04:05.000", v.Dob)
 
 	if error != nil {
-		logs.Debug("Converted date error", error)
+		logs.Error(error)
 
 		var resp = models.UserResponseDTO{StatusCode: 606, User: nil, StatusDesc: "Error adding user"}
 		c.Data["json"] = resp
@@ -107,6 +110,8 @@ func (c *AuthenticationController) SignUp() {
 			if err != nil {
 				c.Data["json"] = err.Error()
 
+				logs.Error(err.Error())
+
 				var resp = models.UserResponseDTO{StatusCode: 601, User: nil, StatusDesc: "Error fetching user"}
 				c.Data["json"] = resp
 			} else {
@@ -118,6 +123,8 @@ func (c *AuthenticationController) SignUp() {
 				// c.Data["json"] = v
 			}
 		} else {
+			logs.Error(err.Error())
+
 			var resp = models.UserResponseDTO{StatusCode: 606, User: nil, StatusDesc: "Error adding user"}
 			c.Data["json"] = resp
 
