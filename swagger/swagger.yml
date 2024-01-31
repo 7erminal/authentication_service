@@ -12,12 +12,12 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 basePath: /v1
 paths:
-  /auth/:
+  /auth/login:
     post:
       tags:
       - auth
       description: |-
-        create Authentication
+        Login
         <br>
       operationId: AuthenticationController.Create
       parameters:
@@ -34,21 +34,21 @@ paths:
             $ref: '#/definitions/models.UserResponseDTO'
         "403":
           description: body is empty
-  /auth/sign-up:
+  /auth/verify-otp:
     post:
       tags:
       - auth
       description: |-
-        Sign up
+        Login
         <br>
-      operationId: AuthenticationController.SignUp
+      operationId: AuthenticationController.Verify OTP
       parameters:
       - in: body
         name: body
-        description: body for SignUp content
+        description: body for Authentication content
         required: true
         schema:
-          $ref: '#/definitions/models.SignUpDTO'
+          $ref: '#/definitions/models.AuthenticationDTO'
       responses:
         "201":
           description: ""
@@ -97,25 +97,6 @@ paths:
             $ref: '#/definitions/models.Users'
         "403":
           description: ""
-    post:
-      tags:
-      - users
-      description: |-
-        create Users
-        <br>
-      operationId: UsersController.Post
-      parameters:
-      - in: body
-        name: body
-        description: body for Users content
-        required: true
-        schema:
-          $ref: '#/definitions/models.Users'
-      responses:
-        "201":
-          description: '{int} models.Users'
-        "403":
-          description: body is empty
   /users/{id}:
     get:
       tags:
@@ -181,6 +162,92 @@ paths:
           description: '{string} delete success!'
         "403":
           description: id is empty
+  /users/{username}:
+    get:
+      tags:
+      - users
+      description: |-
+        Verify Users by username
+        <br>
+      operationId: UsersController.Verify User by username
+      parameters:
+      - in: path
+        name: username
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UsernameDTO'
+        "403":
+          description: :username is empty
+  /users/2/sign-up:
+    post:
+      tags:
+      - users
+      description: |-
+        Sign up
+        <br>
+      operationId: UsersController.SignUp2
+      parameters:
+      - in: body
+        name: body
+        description: body for SignUp content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuthenticationDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
+  /users/resend-otp/{username}:
+    get:
+      tags:
+      - users
+      description: |-
+        Resend OTP using username
+        <br>
+      operationId: UsersController.Resend OTP
+      parameters:
+      - in: path
+        name: username
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UsernameDTO'
+        "403":
+          description: :username is empty
+  /users/sign-up:
+    post:
+      tags:
+      - users
+      description: |-
+        Sign up
+        <br>
+      operationId: UsersController.SignUp
+      parameters:
+      - in: body
+        name: body
+        description: body for SignUp content
+        required: true
+        schema:
+          $ref: '#/definitions/models.SignUpDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
 definitions:
   models.AuthenticationDTO:
     title: AuthenticationDTO
@@ -233,6 +300,12 @@ definitions:
         type: string
       User:
         $ref: '#/definitions/models.Users'
+  models.UsernameDTO:
+    title: UsernameDTO
+    type: object
+    properties:
+      Username:
+        type: string
   models.Users:
     title: Users
     type: object

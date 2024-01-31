@@ -9,8 +9,8 @@ func init() {
 
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
-            Method: "Post",
-            Router: `/`,
+            Method: "Login",
+            Router: `/login`,
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -18,17 +18,8 @@ func init() {
 
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
-            Method: "SignUp",
-            Router: `/sign-up`,
-            AllowHTTPMethods: []string{"post"},
-            MethodParams: param.Make(),
-            Filters: nil,
-            Params: nil})
-
-    beego.GlobalControllerRouter["authentication_service/controllers:UsersController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:UsersController"],
-        beego.ControllerComments{
-            Method: "Post",
-            Router: `/`,
+            Method: "VerifyOTP",
+            Router: `/verify-otp`,
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -39,6 +30,15 @@ func init() {
             Method: "GetAll",
             Router: `/`,
             AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:UsersController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:UsersController"],
+        beego.ControllerComments{
+            Method: "SignUp2",
+            Router: `/2/sign-up`,
+            AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})
@@ -66,6 +66,33 @@ func init() {
             Method: "Delete",
             Router: `/:id`,
             AllowHTTPMethods: []string{"delete"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:UsersController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:UsersController"],
+        beego.ControllerComments{
+            Method: "VerifyUsername",
+            Router: `/:username`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:UsersController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:UsersController"],
+        beego.ControllerComments{
+            Method: "ResendOtp",
+            Router: `/resend-otp/:username`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:UsersController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:UsersController"],
+        beego.ControllerComments{
+            Method: "SignUp",
+            Router: `/sign-up`,
+            AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})

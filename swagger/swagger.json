@@ -15,12 +15,12 @@
     },
     "basePath": "/v1",
     "paths": {
-        "/auth/": {
+        "/auth/login": {
             "post": {
                 "tags": [
                     "auth"
                 ],
-                "description": "create Authentication\n\u003cbr\u003e",
+                "description": "Login\n\u003cbr\u003e",
                 "operationId": "AuthenticationController.Create",
                 "parameters": [
                     {
@@ -46,21 +46,21 @@
                 }
             }
         },
-        "/auth/sign-up": {
+        "/auth/verify-otp": {
             "post": {
                 "tags": [
                     "auth"
                 ],
-                "description": "Sign up\n\u003cbr\u003e",
-                "operationId": "AuthenticationController.SignUp",
+                "description": "Login\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Verify OTP",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "body for SignUp content",
+                        "description": "body for Authentication content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.SignUpDTO"
+                            "$ref": "#/definitions/models.AuthenticationDTO"
                         }
                     }
                 ],
@@ -133,27 +133,92 @@
                         "description": ""
                     }
                 }
-            },
+            }
+        },
+        "/users/2/sign-up": {
             "post": {
                 "tags": [
                     "users"
                 ],
-                "description": "create Users\n\u003cbr\u003e",
-                "operationId": "UsersController.Post",
+                "description": "Sign up\n\u003cbr\u003e",
+                "operationId": "UsersController.SignUp2",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "body for Users content",
+                        "description": "body for SignUp content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Users"
+                            "$ref": "#/definitions/models.AuthenticationDTO"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "{int} models.Users"
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/users/resend-otp/{username}": {
+            "get": {
+                "tags": [
+                    "users"
+                ],
+                "description": "Resend OTP using username\n\u003cbr\u003e",
+                "operationId": "UsersController.Resend OTP",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "username",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UsernameDTO"
+                        }
+                    },
+                    "403": {
+                        "description": ":username is empty"
+                    }
+                }
+            }
+        },
+        "/users/sign-up": {
+            "post": {
+                "tags": [
+                    "users"
+                ],
+                "description": "Sign up\n\u003cbr\u003e",
+                "operationId": "UsersController.SignUp",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for SignUp content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SignUpDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
                     },
                     "403": {
                         "description": "body is empty"
@@ -249,6 +314,35 @@
                     }
                 }
             }
+        },
+        "/users/{username}": {
+            "get": {
+                "tags": [
+                    "users"
+                ],
+                "description": "Verify Users by username\n\u003cbr\u003e",
+                "operationId": "UsersController.Verify User by username",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "username",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UsernameDTO"
+                        }
+                    },
+                    "403": {
+                        "description": ":username is empty"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -325,6 +419,15 @@
                 },
                 "User": {
                     "$ref": "#/definitions/models.Users"
+                }
+            }
+        },
+        "models.UsernameDTO": {
+            "title": "UsernameDTO",
+            "type": "object",
+            "properties": {
+                "Username": {
+                    "type": "string"
                 }
             }
         },

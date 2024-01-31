@@ -10,6 +10,7 @@ import (
 
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // UsersController operations for Users
@@ -19,28 +20,195 @@ type UsersController struct {
 
 // URLMapping ...
 func (c *UsersController) URLMapping() {
-	c.Mapping("Post", c.Post)
+	// c.Mapping("Post", c.Post)
 	c.Mapping("GetOne", c.GetOne)
 	c.Mapping("GetAll", c.GetAll)
 	c.Mapping("Put", c.Put)
 	c.Mapping("Delete", c.Delete)
+	c.Mapping("SignUp", c.SignUp)
+	c.Mapping("SignUp2", c.SignUp2)
+	c.Mapping("VerifyUser", c.VerifyUsername)
+	c.Mapping("ResendOTP", c.ResendOtp)
 }
 
-// Post ...
-// @Title Post
-// @Description create Users
-// @Param	body		body 	models.Users	true		"body for Users content"
-// @Success 201 {int} models.Users
+// SignUp2 ...
+// @Title SignUp2
+// @Description Sign up
+// @Param	body		body 	models.AuthenticationDTO	true		"body for SignUp content"
+// @Success 201 {object} models.UserResponseDTO
 // @Failure 403 body is empty
-// @router / [post]
-func (c *UsersController) Post() {
-	var v models.Users
+// @router /2/sign-up [post]
+func (c *UsersController) SignUp2() {
+	var v models.AuthenticationDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
-	if _, err := models.AddUsers(&v); err == nil {
+	logs.Info("Received ", v)
+
+	hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.Password), 8)
+
+	if errr == nil {
+		logs.Debug(hashedPassword)
+
+		v.Password = string(hashedPassword)
+
+		logs.Debug("Sending", v.Password)
+
+		// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+	}
+
+	// Convert dob string to date
+	// dobm, error := time.Parse("2006-01-02 15:04:05.000", v.Dob)
+
+	// Assign dob
+	var addUserModel = models.Users{Username: v.Username, Password: string(hashedPassword), DateCreated: time.Now(), Active: 1, CreatedBy: 1, ModifiedBy: 1}
+
+	if r, err := models.AddUsers(&addUserModel); err == nil {
 		c.Ctx.Output.SetStatus(201)
-		c.Data["json"] = v
+
+		// logs.Debug("Returned user is", r)
+
+		// id, _ := strconv.ParseInt(idStr, 0, 64)
+		v, err := models.GetUsersById(r)
+
+		if err != nil {
+			c.Data["json"] = err.Error()
+
+			logs.Error(err.Error())
+
+			var resp = models.UserResponseDTO{StatusCode: 601, User: nil, StatusDesc: "Error fetching user"}
+			c.Data["json"] = resp
+		} else {
+			logs.Debug("Returned user is", v)
+
+			var resp = models.UserResponseDTO{StatusCode: 200, User: v, StatusDesc: "User created successfully"}
+
+			logs.Info("About to generate OTP for ", v.Username)
+			models.GenerateUserOTP(v.UserId)
+
+			c.Data["json"] = resp
+
+			// c.Data["json"] = v
+		}
 	} else {
+		logs.Error(err.Error())
+
+		var resp = models.UserResponseDTO{StatusCode: 606, User: nil, StatusDesc: "Error adding user"}
+		c.Data["json"] = resp
+
+		// c.Data["json"] = err.Error()
+	}
+
+	c.ServeJSON()
+}
+
+// SignUp ...
+// @Title SignUp
+// @Description Sign up
+// @Param	body		body 	models.SignUpDTO	true		"body for SignUp content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /sign-up [post]
+func (c *UsersController) SignUp() {
+	var v models.SignUpDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+	logs.Info("Received ", v)
+
+	hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.Password), 8)
+
+	if errr == nil {
+		logs.Debug(hashedPassword)
+
+		v.Password = string(hashedPassword)
+
+		logs.Debug("Sending", v.Password)
+
+		// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+	}
+
+	// Convert dob string to date
+	dobm, error := time.Parse("2006-01-02 15:04:05.000", v.Dob)
+
+	if error != nil {
+		logs.Error(error)
+
+		var resp = models.UserResponseDTO{StatusCode: 606, User: nil, StatusDesc: "Error adding user"}
+		c.Data["json"] = resp
+
+		// c.Data["json"] = error.Error()
+
+	} else {
+		// Assign dob
+		var addUserModel = models.Users{FullName: v.Name, Gender: v.Gender, Dob: dobm, Password: string(hashedPassword), Email: v.Email, DateCreated: time.Now(), Active: 1, CreatedBy: 1, ModifiedBy: 1}
+
+		if r, err := models.AddUsers(&addUserModel); err == nil {
+			c.Ctx.Output.SetStatus(201)
+
+			// logs.Debug("Returned user is", r)
+
+			// id, _ := strconv.ParseInt(idStr, 0, 64)
+			v, err := models.GetUsersById(r)
+
+			if err != nil {
+				c.Data["json"] = err.Error()
+
+				logs.Error(err.Error())
+
+				var resp = models.UserResponseDTO{StatusCode: 601, User: nil, StatusDesc: "Error fetching user"}
+				c.Data["json"] = resp
+			} else {
+				logs.Debug("Returned user is", v)
+
+				var resp = models.UserResponseDTO{StatusCode: 200, User: v, StatusDesc: "User created successfully"}
+				c.Data["json"] = resp
+
+				// c.Data["json"] = v
+			}
+		} else {
+			logs.Error(err.Error())
+
+			var resp = models.UserResponseDTO{StatusCode: 606, User: nil, StatusDesc: "Error adding user"}
+			c.Data["json"] = resp
+
+			// c.Data["json"] = err.Error()
+		}
+	}
+
+	c.ServeJSON()
+}
+
+// Verify Username ...
+// @Title Verify User by username
+// @Description Verify Users by username
+// @Param	username		path 	string	true		"The key for staticblock"
+// @Success 200 {object} models.UsernameDTO
+// @Failure 403 :username is empty
+// @router /:username [get]
+func (c *UsersController) VerifyUsername() {
+	username := c.Ctx.Input.Param(":username")
+	v, err := models.GetUsersByUsername(username)
+
+	if err != nil {
 		c.Data["json"] = err.Error()
+	} else {
+		c.Data["json"] = v
+	}
+	c.ServeJSON()
+}
+
+// Resend OTP ...
+// @Title Resend OTP
+// @Description Resend OTP using username
+// @Param	username		path 	string	true		"The key for staticblock"
+// @Success 200 {object} models.UsernameDTO
+// @Failure 403 :username is empty
+// @router /resend-otp/:username [get]
+func (c *UsersController) ResendOtp() {
+	username := c.Ctx.Input.Param(":username")
+	v, err := models.GetUsersByUsername(username)
+
+	if err != nil {
+		c.Data["json"] = err.Error()
+	} else {
+		c.Data["json"] = v
 	}
 	c.ServeJSON()
 }
