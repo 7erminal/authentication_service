@@ -1,3 +1,21 @@
 2024/03/19 06:40:15.922  [I] [server.go:280]  http server Running on http://:8080
 2024/03/19 06:40:16.498  [I] [server.go:280]  http server Running on http://:8080
 2024/03/19 06:43:43.015  [I] [server.go:280]  http server Running on http://:8080
+2024/04/06 15:12:37.385  [I] [server.go:280]  http server Running on http://:8080
+2024/04/06 15:12:56.681  [I] [server.go:280]  http server Running on http://:8080
+2024/04/06 15:14:52.340  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|   4.678125ms| nomatch|[97;44m GET     [0m /v1/auth/login
+2024/04/06 15:15:10.336  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|   1.371916ms| nomatch|[97;44m GET     [0m /v1/auth
+2024/04/06 15:15:55.646  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|   1.121791ms| nomatch|[97;44m GET     [0m /v1/auth/login
+2024/04/06 15:17:58.848  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|        309µs| nomatch|[97;44m GET     [0m /v1/auth/login/
+2024/04/06 15:18:08.312  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|     365.75µs| nomatch|[97;44m GET     [0m /v1/login
+2024/04/06 15:18:22.655  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|    316.042µs| nomatch|[97;44m GET     [0m /auth/login/
+2024/04/06 15:18:57.383  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|   3.883875ms| nomatch|[97;44m GET     [0m /v1/auth/verify-otp
+2024/04/06 15:19:32.366  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|   2.002209ms| nomatch|[97;44m GET     [0m /verify-otp
+2024/04/06 15:19:41.421  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|    202.958µs| nomatch|[97;44m GET     [0m /v1/verify-otp
+2024/04/06 15:19:46.853  [D] [router.go:1305]  |            ::1|[97;43m 404 [0m|     1.8925ms| nomatch|[97;44m GET     [0m /v1/auth/verify-otp
+2024/04/06 15:25:36.032  [I] [authentication.go:34]  Received  John john1234
+2024/04/06 15:25:36.121  [E] [authentication.go:54]  <QuerySeter> no row found
+2024/04/06 15:25:36.122  [D] [router.go:1305]  |            ::1|[97;42m 200 [0m|  97.279875ms|   match|[97;46m POST    [0m /v1/auth/login   r:/v1/auth/login
+2024/04/06 15:26:02.607  [I] [authentication.go:34]  Received  John john1234
+2024/04/06 15:26:02.622  [E] [authentication.go:54]  <QuerySeter> no row found
+2024/04/06 15:26:02.623  [D] [router.go:1305]  |            ::1|[97;42m 200 [0m|  16.786791ms|   match|[97;46m POST    [0m /v1/auth/login   r:/v1/auth/login

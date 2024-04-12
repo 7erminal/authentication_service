@@ -1,4 +1,7 @@
 swagger: "2.0"
+schemes:
+    - http
+    - https
 info:
   title: beego Test API
   description: |
