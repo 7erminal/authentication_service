@@ -17,7 +17,7 @@ func main() {
 		logs.Error("%s", err)
 	}
 	orm.RegisterDataBase("default", "mysql", sqlConn)
-	logs.SetLogger(logs.AdapterFile, `{"filename":"logs/application.log"}`)
+	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8000", "http://152.67.134.169", "http://13.40.60.131:8001", "http://167.86.115.44:8002"},

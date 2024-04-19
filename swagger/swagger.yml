@@ -1,7 +1,4 @@
 swagger: "2.0"
-schemes:
-    - http
-    - https
 info:
   title: beego Test API
   description: |
@@ -37,26 +34,48 @@ paths:
             $ref: '#/definitions/models.UserResponseDTO'
         "403":
           description: body is empty
+  /auth/resend-otp:
+    post:
+      tags:
+      - auth
+      description: |-
+        Resend OTP using username
+        <br>
+      operationId: AuthenticationController.Resend OTP
+      parameters:
+      - in: body
+        name: body
+        description: body for SignUp content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.UsernameDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/responsesDTOs.UserResponseDTO'
+        "403":
+          description: body is empty
   /auth/verify-otp:
     post:
       tags:
       - auth
       description: |-
-        Login
+        Verify OTP using username
         <br>
       operationId: AuthenticationController.Verify OTP
       parameters:
       - in: body
         name: body
-        description: body for Authentication content
+        description: body for Verify OTP content
         required: true
         schema:
-          $ref: '#/definitions/models.AuthenticationDTO'
+          $ref: '#/definitions/requestsDTOs.VerifyOtpDTO'
       responses:
         "201":
           description: ""
           schema:
-            $ref: '#/definitions/models.UserResponseDTO'
+            $ref: '#/definitions/requestsDTOs.UserResponseDTO'
         "403":
           description: body is empty
 definitions:
@@ -68,55 +87,9 @@ definitions:
         type: string
       Username:
         type: string
-  models.SignUpDTO:
-    title: SignUpDTO
-    type: object
-    properties:
-      Dob:
-        type: string
-      Email:
-        type: string
-      Gender:
-        type: string
-      Name:
-        type: string
-      Password:
-        type: string
-  models.UpdateUserRequestDTO:
-    title: UpdateUserRequestDTO
-    type: object
-    properties:
-      Address:
-        type: string
-      Dob:
-        type: string
-      FullName:
-        type: string
-      Gender:
-        type: string
-      MaritalStatus:
-        type: string
-      PhoneNumber:
-        type: string
-      Username:
-        type: string
   models.UserResponseDTO:
     title: UserResponseDTO
     type: object
-    properties:
-      StatusCode:
-        type: integer
-        format: int64
-      StatusDesc:
-        type: string
-      User:
-        $ref: '#/definitions/models.Users'
-  models.UsernameDTO:
-    title: UsernameDTO
-    type: object
-    properties:
-      Username:
-        type: string
   models.Users:
     title: Users
     type: object
@@ -167,6 +140,34 @@ definitions:
         format: int64
       Username:
         type: string
+  requestsDTOs.UserResponseDTO:
+    title: UserResponseDTO
+    type: object
+  requestsDTOs.UsernameDTO:
+    title: UsernameDTO
+    type: object
+    properties:
+      Username:
+        type: string
+  requestsDTOs.VerifyOtpDTO:
+    title: VerifyOtpDTO
+    type: object
+    properties:
+      Password:
+        type: string
+      Username:
+        type: string
+  responsesDTOs.UserResponseDTO:
+    title: UserResponseDTO
+    type: object
+    properties:
+      StatusCode:
+        type: integer
+        format: int64
+      StatusDesc:
+        type: string
+      User:
+        $ref: '#/definitions/models.Users'
 tags:
 - name: auth
   description: |
