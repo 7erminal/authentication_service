@@ -20,6 +20,11 @@ func init() {
 				&controllers.AuthenticationController{},
 			),
 		),
+		beego.NSNamespace("/oauth/google/authorize",
+			beego.NSInclude(
+				&controllers.OAuthAuthenticationController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

@@ -34,4 +34,13 @@ func init() {
             Filters: nil,
             Params: nil})
 
+    beego.GlobalControllerRouter["authentication_service/controllers:OAuthAuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:OAuthAuthenticationController"],
+        beego.ControllerComments{
+            Method: "OAuthGoogle",
+            Router: `/oauthgoogle/authorize`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
 }

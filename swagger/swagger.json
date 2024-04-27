@@ -107,6 +107,37 @@
                     }
                 }
             }
+        },
+        "/oauth/google/authorize/oauthgoogle/authorize": {
+            "post": {
+                "tags": [
+                    "oauth/google/authorize"
+                ],
+                "description": "create OAuthAuthentication\n\u003cbr\u003e",
+                "operationId": "OAuthAuthenticationController.Create",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for OAuthAuthentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.OAuthAuthentication"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.OAuthAuthentication"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -121,6 +152,10 @@
                     "type": "string"
                 }
             }
+        },
+        "models.OAuthAuthentication": {
+            "title": "OAuthAuthentication",
+            "type": "object"
         },
         "models.UserResponseDTO": {
             "title": "UserResponseDTO",
@@ -243,6 +278,10 @@
         {
             "name": "auth",
             "description": "AuthenticationController operations for Authentication\n"
+        },
+        {
+            "name": "oauth/google/authorize",
+            "description": "OAuthAuthenticationController operations for OAuthAuthentication\n"
         }
     ]
 }
