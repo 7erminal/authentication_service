@@ -20,7 +20,7 @@ func init() {
 				&controllers.AuthenticationController{},
 			),
 		),
-		beego.NSNamespace("/oauth/google/authorize",
+		beego.NSNamespace("/oauth",
 			beego.NSInclude(
 				&controllers.OAuthAuthenticationController{},
 			),

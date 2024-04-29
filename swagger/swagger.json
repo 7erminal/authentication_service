@@ -108,10 +108,10 @@
                 }
             }
         },
-        "/oauth/google/authorize/oauthgoogle/authorize": {
-            "post": {
+        "/oauth/google/authorize": {
+            "get": {
                 "tags": [
-                    "oauth/google/authorize"
+                    "oauth"
                 ],
                 "description": "create OAuthAuthentication\n\u003cbr\u003e",
                 "operationId": "OAuthAuthenticationController.Create",
@@ -280,7 +280,7 @@
             "description": "AuthenticationController operations for Authentication\n"
         },
         {
-            "name": "oauth/google/authorize",
+            "name": "oauth",
             "description": "OAuthAuthenticationController operations for OAuthAuthentication\n"
         }
     ]

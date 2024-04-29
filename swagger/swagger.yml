@@ -78,10 +78,10 @@ paths:
             $ref: '#/definitions/requestsDTOs.UserResponseDTO'
         "403":
           description: body is empty
-  /oauth/google/authorize/oauthgoogle/authorize:
-    post:
+  /oauth/google/authorize:
+    get:
       tags:
-      - oauth/google/authorize
+      - oauth
       description: |-
         create OAuthAuthentication
         <br>
@@ -197,6 +197,6 @@ tags:
 - name: auth
   description: |
     AuthenticationController operations for Authentication
-- name: oauth/google/authorize
+- name: oauth
   description: |
     OAuthAuthenticationController operations for OAuthAuthentication

@@ -1,8 +1,6 @@
 package responsesDTOs
 
-import (
-	"authentication_service/models"
-)
+import "authentication_service/models"
 
 type UserResponseDTO struct {
 	StatusCode int           `orm: "omitempty"`
