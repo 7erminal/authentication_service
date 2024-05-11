@@ -138,6 +138,37 @@
                     }
                 }
             }
+        },
+        "/oauth/third-party/login": {
+            "get": {
+                "tags": [
+                    "oauth"
+                ],
+                "description": "create OAuthAuthentication\n\u003cbr\u003e",
+                "operationId": "OAuthAuthenticationController.Create",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for OAuthAuthentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.OAuthAuthentication"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.OAuthAuthentication"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
         }
     },
     "definitions": {
