@@ -20,7 +20,7 @@ func main() {
 	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8000", "http://152.67.134.169", "http://13.40.60.131:8001", "http://167.86.115.44:8002", "http://5.252.55.191", "https://vmi1862596.contaboserver.net", "vmi1862596.contaboserver.net"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8000", "http://152.67.134.169", "http://13.40.60.131:8001", "http://167.86.115.44:8002", "http://5.252.55.191", "makufoodsltd.net", "https://makufoodsltd.net"},
 		AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
