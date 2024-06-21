@@ -106,6 +106,7 @@ func (c *OAuthAuthenticationController) OAuthThirdPartyLogin() {
 
 func Register(Token_ string) {
 
+	// Get user details from google and register
 	request := api.NewRequest(
 		"https://www.googleapis.com",
 		"/oauth2/v3/userinfo",
