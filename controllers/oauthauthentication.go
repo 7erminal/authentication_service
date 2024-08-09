@@ -28,7 +28,7 @@ func (c *OAuthAuthenticationController) URLMapping() {
 // @Failure 403 body is empty
 // @router /google/authorize [get]
 func (c *OAuthAuthenticationController) OAuthGoogle() {
-	host := "https://orange-falcons-enter.loca.lt"
+	host, err := beego.AppConfig.String("host")
 
 	logs.Info("Callback Received ", c.Ctx.Input.Query("code"))
 
@@ -87,7 +87,7 @@ func (c *OAuthAuthenticationController) OAuthGoogle() {
 // @Failure 403 body is empty
 // @router /third-party/login [get]
 func (c *OAuthAuthenticationController) OAuthThirdPartyLogin() {
-	host := "https://orange-falcons-enter.loca.lt"
+	host, _ := beego.AppConfig.String("host")
 
 	logs.Info("Callback Received ", c.Ctx.Input.Query("third-party"))
 	// c.Ctx.Input.Param(":id")
