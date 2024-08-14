@@ -50,7 +50,7 @@ func (c *AuthenticationController) Login() {
 			c.Data["json"] = resp
 
 		} else {
-			c.Ctx.Output.SetStatus(201)
+			c.Ctx.Output.SetStatus(200)
 
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: a, StatusDesc: "User has been authenticated"}
 			c.Data["json"] = resp
