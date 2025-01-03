@@ -12,7 +12,7 @@ import (
 var secretKey = []byte("secret-key")
 
 func CreateToken(username string) (string, int64, error) {
-	expiryTime := time.Now().Add(time.Hour * 1).Unix()
+	expiryTime := time.Now().Add(time.Hour * 4).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,
