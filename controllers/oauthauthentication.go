@@ -98,7 +98,7 @@ func (c *OAuthAuthenticationController) OAuthThirdPartyLogin() {
 		url_ = "https://accounts.google.com/o/oauth2/v2/auth?client_id=1027199556532-m0a6r4sb74dd8oah3bnoo0igeahgvvis.apps.googleusercontent.com&redirect_uri=" + host + "/v1/oauth/google/authorize&response_type=code&scope=openid%20profile%20email&access_type=offline&include_granted_scopes=true"
 	}
 
-	c.Data["json"] = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: url_, StatusDescription: "Successful"}
+	c.Data["json"] = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: url_, StatusDesc: "Successful"}
 
 	c.ServeJSON()
 

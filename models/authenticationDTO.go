@@ -5,8 +5,8 @@ import (
 )
 
 type AuthenticationDTO struct {
-	Password string `orm:"size(255)"`
 	Username string `orm:"size(255)"`
+	Password string `orm:"size(255)"`
 }
 
 func init() {

@@ -17,9 +17,31 @@ paths:
       tags:
       - auth
       description: |-
+        Login User
+        <br>
+      operationId: AuthenticationController.Login
+      parameters:
+      - in: body
+        name: body
+        description: body for Authentication content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuthenticationDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
+  /auth/login/token:
+    post:
+      tags:
+      - auth
+      description: |-
         Login
         <br>
-      operationId: AuthenticationController.Create
+      operationId: AuthenticationController.Login User
       parameters:
       - in: body
         name: body
@@ -54,6 +76,28 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/responsesDTOs.UserResponseDTO'
+        "403":
+          description: body is empty
+  /auth/token/check:
+    post:
+      tags:
+      - auth
+      description: |-
+        Check Token Expiry
+        <br>
+      operationId: AuthenticationController.Check token expiry
+      parameters:
+      - in: body
+        name: body
+        description: body for Authentication content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.StringRequestDTO'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/responsesDTOs.StringResponseDTO'
         "403":
           description: body is empty
   /auth/verify-otp:
@@ -187,6 +231,12 @@ definitions:
         format: int64
       Username:
         type: string
+  requestsDTOs.StringRequestDTO:
+    title: StringRequestDTO
+    type: object
+    properties:
+      Value:
+        type: string
   requestsDTOs.UserResponseDTO:
     title: UserResponseDTO
     type: object
@@ -203,6 +253,17 @@ definitions:
       Password:
         type: string
       Username:
+        type: string
+  responsesDTOs.StringResponseDTO:
+    title: StringResponseDTO
+    type: object
+    properties:
+      StatusCode:
+        type: integer
+        format: int64
+      StatusDesc:
+        type: string
+      Value:
         type: string
   responsesDTOs.UserResponseDTO:
     title: UserResponseDTO

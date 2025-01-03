@@ -23,11 +23,13 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("Login", c.Login)
 	c.Mapping("VerifyOTP", c.VerifyOTP)
 	c.Mapping("ResendOTP", c.ResendOTP)
+	c.Mapping("LoginToken", c.LoginToken)
+	c.Mapping("CheckTokenExpiry", c.CheckTokenExpiry)
 }
 
 // Post ...
-// @Title Create
-// @Description Login
+// @Title Login
+// @Description Login User
 // @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
 // @Success 201 {object} models.UserResponseDTO
 // @Failure 403 body is empty
@@ -54,6 +56,58 @@ func (c *AuthenticationController) Login() {
 
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: a, StatusDesc: "User has been authenticated"}
 			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error(err.Error())
+		var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Unidentified user"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// Post ...
+// @Title Login User
+// @Description Login
+// @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /login/token [post]
+func (c *AuthenticationController) LoginToken() {
+	var v models.AuthenticationDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.Password, v.Username)
+
+	if a, err := models.GetUsersByUsername(v.Username); err == nil {
+		// Compare the stored hashed password, with the hashed version of the password that was received
+		if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
+			// If the two passwords don't match, return a 401 status
+			c.Data["json"] = err.Error()
+
+			logs.Error(err.Error())
+
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Incorrect password"}
+			c.Data["json"] = resp
+
+		} else {
+			c.Ctx.Output.SetStatus(200)
+
+			token, expiryTime, err := functions.CreateToken(v.Username)
+
+			logs.Info("Token created is ", token)
+
+			if err != nil {
+				logs.Error("Error creating token. ", err.Error())
+			} else {
+				t := time.Unix(expiryTime, 0)
+				tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+				if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
+					c.Data["json"] = resp
+				} else {
+					logs.Error("Error adding token. ", err.Error())
+				}
+			}
 		}
 	} else {
 		logs.Error(err.Error())
@@ -182,6 +236,36 @@ func (c *AuthenticationController) ResendOTP() {
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: v, StatusDesc: "Error sending email"}
 			c.Data["json"] = resp
 		}
+	}
+	c.ServeJSON()
+}
+
+// Post ...
+// @Title Check token expiry
+// @Description Check Token Expiry
+// @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
+// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Failure 403 body is empty
+// @router /token/check [post]
+func (c *AuthenticationController) CheckTokenExpiry() {
+	var q requestsDTOs.StringRequestDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	logs.Info("About to verify token ", q.Value)
+
+	if token, err := functions.CheckTokenExpiry(q.Value); err == nil {
+		if token {
+			logs.Info("Token is still valid")
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Valid", StatusDesc: "Token is valid"}
+			c.Data["json"] = resp
+		} else {
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "Invalid token", StatusDesc: "Invalid token"}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error("Error validating token...", err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "Error validating token", StatusDesc: "Error validating token"}
+		c.Data["json"] = resp
 	}
 	c.ServeJSON()
 }

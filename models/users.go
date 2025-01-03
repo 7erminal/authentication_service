@@ -62,13 +62,9 @@ func GetUsersByUsername(username string) (v *Users, err error) {
 	v = &Users{Email: username}
 	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
 		return v, nil
-	}
-
-	if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
+	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
 		return v, nil
-	}
-
-	if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
+	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 

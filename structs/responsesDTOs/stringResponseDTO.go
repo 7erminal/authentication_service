@@ -1,7 +1,7 @@
 package responsesDTOs
 
 type StringResponseDTO struct {
-	StatusCode        int
-	Value             string
-	StatusDescription string
+	StatusCode int
+	Value      string
+	StatusDesc string
 }
