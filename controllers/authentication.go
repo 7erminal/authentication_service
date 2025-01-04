@@ -97,15 +97,26 @@ func (c *AuthenticationController) LoginToken() {
 			logs.Info("Token created is ", token)
 
 			if err != nil {
-				logs.Error("Error creating token. ", err.Error())
+				logs.Error("Error updating token. ", err.Error())
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+				c.Data["json"] = resp
 			} else {
-				t := time.Unix(expiryTime, 0)
-				tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-				if _, err := models.AddAccessTokens(&tokenObj); err == nil {
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
-					c.Data["json"] = resp
+				updateToken := models.AccessTokens{User: a, Revoked: true}
+				if err := models.UpdateAccessTokensByUserId(&updateToken); err == nil {
+					t := time.Unix(expiryTime, 0)
+					tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
+						c.Data["json"] = resp
+					} else {
+						logs.Error("Error adding token. ", err.Error())
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+						c.Data["json"] = resp
+					}
 				} else {
-					logs.Error("Error adding token. ", err.Error())
+					logs.Error("Error updating token. ", err.Error())
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+					c.Data["json"] = resp
 				}
 			}
 		}
@@ -254,17 +265,17 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 	logs.Info("About to verify token ", q.Value)
 
 	if token, err := functions.CheckTokenExpiry(q.Value); err == nil {
-		if token {
+		if token.IsValid {
 			logs.Info("Token is still valid")
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Valid", StatusDesc: "Token is valid"}
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: token.User, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "Invalid token", StatusDesc: "Invalid token"}
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: token.User, StatusDesc: "Invalid token"}
 			c.Data["json"] = resp
 		}
 	} else {
 		logs.Error("Error validating token...", err.Error())
-		var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "Error validating token", StatusDesc: "Error validating token"}
+		var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: token.User, StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()

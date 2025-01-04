@@ -2,6 +2,7 @@ package functions
 
 import (
 	"authentication_service/models"
+	"authentication_service/structs/responsesDTOs"
 	"fmt"
 	"time"
 
@@ -43,7 +44,7 @@ func VerifyToken(tokenString string) (bool, error) {
 	return true, nil
 }
 
-func CheckTokenExpiry(token_ string) (bool, error) {
+func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error) {
 
 	if token, err := VerifyToken(token_); err == nil {
 		if token {
@@ -55,21 +56,26 @@ func CheckTokenExpiry(token_ string) (bool, error) {
 
 				if tokenObj.ExpiresAt.After(time.Now()) {
 					logs.Info("Token is valid")
-					return true, nil
+					resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: tokenObj.User}
+					return resp, nil
 				} else {
 					logs.Info("Token has expired")
-					return false, nil
+					resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
+					return resp, nil
 				}
 			} else {
 				logs.Error("Token does not exist...", err.Error())
-				return false, err
+				resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
+				return resp, err
 			}
 		} else {
 			logs.Error("Token is invalid...")
-			return false, nil
+			resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
+			return resp, nil
 		}
 	} else {
 		logs.Error("Error validating token...", err.Error())
-		return false, err
+		resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
+		return resp, err
 	}
 }

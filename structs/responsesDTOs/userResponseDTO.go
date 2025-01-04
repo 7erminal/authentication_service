@@ -7,3 +7,8 @@ type UserResponseDTO struct {
 	User       *models.Users
 	StatusDesc string
 }
+
+type UserTokenResponseDTO struct {
+	IsValid bool
+	User    *models.Users
+}
