@@ -7,6 +7,7 @@ import (
 )
 
 func SendEmail(username string, otp string) {
+	// create app password in gmail to use here. This is different from your login password. This email will send emails.
 	auth := smtp.PlainAuth("", "bede.abbe@solisfinance.com", "dqcmwcuyvfjwcuyd", "smtp.gmail.com")
 
 	// Here we do it all: connect to our server, set up a message and send it

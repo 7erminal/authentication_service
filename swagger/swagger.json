@@ -139,6 +139,68 @@
                 }
             }
         },
+        "/auth/token/invite": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Generate invite Token\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Generate invite token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.EncryptInviteRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responsesDTOs.InviteHashResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/token/invite/verify": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Check Token Expiry\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Check invite token validity",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.DecryptRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/auth/verify-otp": {
             "post": {
                 "tags": [
@@ -254,6 +316,46 @@
             "title": "UserResponseDTO",
             "type": "object"
         },
+        "models.UserTokens": {
+            "title": "UserTokens",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "ExpiryDate": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Nonce": {
+                    "type": "string"
+                },
+                "Token": {
+                    "type": "string"
+                },
+                "UserTokenId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Users": {
             "title": "Users",
             "type": "object",
@@ -325,6 +427,33 @@
                 }
             }
         },
+        "requestsDTOs.DecryptRequestDTO": {
+            "title": "DecryptRequestDTO",
+            "type": "object",
+            "properties": {
+                "Email": {
+                    "type": "string"
+                },
+                "Nonce": {
+                    "type": "string"
+                },
+                "Token": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestsDTOs.EncryptInviteRequestDTO": {
+            "title": "EncryptInviteRequestDTO",
+            "type": "object",
+            "properties": {
+                "Email": {
+                    "type": "string"
+                },
+                "Role": {
+                    "type": "string"
+                }
+            }
+        },
         "requestsDTOs.StringRequestDTO": {
             "title": "StringRequestDTO",
             "type": "object",
@@ -356,6 +485,31 @@
                 },
                 "Username": {
                     "type": "string"
+                }
+            }
+        },
+        "responsesDTOs.InviteHashDTO": {
+            "title": "InviteHashDTO",
+            "type": "object",
+            "properties": {
+                "Token": {
+                    "$ref": "#/definitions/models.UserTokens"
+                }
+            }
+        },
+        "responsesDTOs.InviteHashResponseDTO": {
+            "title": "InviteHashResponseDTO",
+            "type": "object",
+            "properties": {
+                "StatusCode": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "StatusDesc": {
+                    "type": "string"
+                },
+                "Value": {
+                    "$ref": "#/definitions/responsesDTOs.InviteHashDTO"
                 }
             }
         },

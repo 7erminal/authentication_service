@@ -6,6 +6,7 @@ import (
 	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -25,6 +26,8 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("ResendOTP", c.ResendOTP)
 	c.Mapping("LoginToken", c.LoginToken)
 	c.Mapping("CheckTokenExpiry", c.CheckTokenExpiry)
+	c.Mapping("GenerateInviteToken", c.GenerateInviteToken)
+	c.Mapping("VerifyInviteToken", c.VerifyInviteToken)
 }
 
 // Post ...
@@ -276,6 +279,101 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 	} else {
 		logs.Error("Error validating token...", err.Error())
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: token.User, StatusDesc: "Error validating token"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// Post ...
+// @Title Generate invite token
+// @Description Generate invite Token
+// @Param	body		body 	requestsDTOs.EncryptInviteRequestDTO	true		"body for Authentication content"
+// @Success 200 {object} responsesDTOs.InviteHashResponseDTO
+// @Failure 403 body is empty
+// @router /token/invite [post]
+func (c *AuthenticationController) GenerateInviteToken() {
+	var q requestsDTOs.EncryptInviteRequestDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	logs.Info("About to generate token ", q.Email)
+	rawString := q.Email + "___" + q.Role
+
+	// ikey, _ := functions.GenerateKey()
+
+	if token, nonce, err := functions.GetAESEncrypted(rawString); err == nil {
+
+		logs.Info("Token generated is ", token)
+		logs.Info("Nonce generated is ", nonce)
+		// logs.Info("Key generated is ", string(ikey[:]))
+
+		var userToken models.UserTokens = models.UserTokens{Token: token, Nonce: nonce, ExpiryDate: time.Now().Add(4 * time.Hour), Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: 1, ModifiedBy: 1}
+
+		_, err := models.AddUserTokens(&userToken)
+
+		if err != nil {
+			return
+		}
+
+		var encryptResp responsesDTOs.InviteHashDTO = responsesDTOs.InviteHashDTO{Token: &userToken}
+		var resp = responsesDTOs.InviteHashResponseDTO{StatusCode: 200, Value: &encryptResp, StatusDesc: "Encrypted"}
+		c.Data["json"] = resp
+
+	} else {
+		logs.Error("Error validating token...", err.Error())
+		var resp = responsesDTOs.InviteHashResponseDTO{StatusCode: 703, Value: nil, StatusDesc: "Error validating token"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// Post ...
+// @Title Check invite token validity
+// @Description Check Token Expiry
+// @Param	body		body 	requestsDTOs.DecryptRequestDTO	true		"body for Authentication content"
+// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Failure 403 body is empty
+// @router /token/invite/verify [post]
+func (c *AuthenticationController) VerifyInviteToken() {
+	var q requestsDTOs.DecryptRequestDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	logs.Info("About to verify token ", q.Token)
+
+	// ikey, _ := functions.GenerateKey()
+
+	if token, err := functions.GetAESDecrypted(q.Token, q.Nonce); err == nil {
+		logs.Info("Token is ", string(token))
+		splitToken := strings.Split(string(token), "___")
+
+		logs.Info("Split Token is ", splitToken[0], " and ", splitToken[1])
+
+		// if splitToken[0] == q.Email {
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "SUCCESS", StatusDesc: "Successfully verified token."}
+		c.Data["json"] = resp
+		// } else {
+		// 	logs.Error("Error validating token...")
+		// 	var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "", StatusDesc: "Error validating token"}
+		// 	c.Data["json"] = resp
+		// }
+
+		// if verified, err := functions.VerifyToken(splitToken[1]); err == nil {
+		// 	if verified {
+		// 		logs.Error("Error validating token...", err.Error())
+		// 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: splitToken[0], StatusDesc: "Successfully verified token."}
+		// 		c.Data["json"] = resp
+		// 	} else {
+		// 		logs.Error("Error validating token...", err.Error())
+		// 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "", StatusDesc: "Error validating token"}
+		// 		c.Data["json"] = resp
+		// 	}
+		// } else {
+		// 	logs.Error("Error validating token...", err.Error())
+		// 	var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "", StatusDesc: "Error validating token"}
+		// 	c.Data["json"] = resp
+		// }
+	} else {
+		logs.Error("Error validating token...", err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "", StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()
