@@ -105,7 +105,7 @@ func (c *AuthenticationController) LoginToken() {
 				c.Data["json"] = resp
 			} else {
 				updateToken := models.AccessTokens{User: a, Revoked: true}
-				if err := models.UpdateAccessTokensByUserId(&updateToken); err == nil {
+				if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
 					t := time.Unix(expiryTime, 0)
 					tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
 					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
