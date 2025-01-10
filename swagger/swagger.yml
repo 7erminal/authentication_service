@@ -141,7 +141,7 @@ paths:
         "200":
           description: ""
           schema:
-            $ref: '#/definitions/responsesDTOs.StringResponseDTO'
+            $ref: '#/definitions/responsesDTOs.InviteDecodeResponseDTO'
         "403":
           description: body is empty
   /auth/verify-otp:
@@ -345,6 +345,17 @@ definitions:
         type: string
       Username:
         type: string
+  responsesDTOs.InviteDecodeResponseDTO:
+    title: InviteDecodeResponseDTO
+    type: object
+    properties:
+      StatusCode:
+        type: integer
+        format: int64
+      StatusDesc:
+        type: string
+      Value:
+        $ref: '#/definitions/responsesDTOs.TokenDestructureResponseDTO'
   responsesDTOs.InviteHashDTO:
     title: InviteHashDTO
     type: object
@@ -372,6 +383,14 @@ definitions:
       StatusDesc:
         type: string
       Value:
+        type: string
+  responsesDTOs.TokenDestructureResponseDTO:
+    title: TokenDestructureResponseDTO
+    type: object
+    properties:
+      Email:
+        type: string
+      RoleId:
         type: string
   responsesDTOs.UserResponseDTO:
     title: UserResponseDTO

@@ -2,6 +2,11 @@ package responsesDTOs
 
 import "authentication_service/models"
 
+type TokenDestructureResponseDTO struct {
+	Email  string
+	RoleId string
+}
+
 type StringResponseDTO struct {
 	StatusCode int
 	Value      string
@@ -15,5 +20,11 @@ type InviteHashDTO struct {
 type InviteHashResponseDTO struct {
 	StatusCode int
 	Value      *InviteHashDTO
+	StatusDesc string
+}
+
+type InviteDecodeResponseDTO struct {
+	StatusCode int
+	Value      *TokenDestructureResponseDTO
 	StatusDesc string
 }

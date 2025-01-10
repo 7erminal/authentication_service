@@ -192,7 +192,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
+                            "$ref": "#/definitions/responsesDTOs.InviteDecodeResponseDTO"
                         }
                     },
                     "403": {
@@ -488,6 +488,22 @@
                 }
             }
         },
+        "responsesDTOs.InviteDecodeResponseDTO": {
+            "title": "InviteDecodeResponseDTO",
+            "type": "object",
+            "properties": {
+                "StatusCode": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "StatusDesc": {
+                    "type": "string"
+                },
+                "Value": {
+                    "$ref": "#/definitions/responsesDTOs.TokenDestructureResponseDTO"
+                }
+            }
+        },
         "responsesDTOs.InviteHashDTO": {
             "title": "InviteHashDTO",
             "type": "object",
@@ -525,6 +541,18 @@
                     "type": "string"
                 },
                 "Value": {
+                    "type": "string"
+                }
+            }
+        },
+        "responsesDTOs.TokenDestructureResponseDTO": {
+            "title": "TokenDestructureResponseDTO",
+            "type": "object",
+            "properties": {
+                "Email": {
+                    "type": "string"
+                },
+                "RoleId": {
                     "type": "string"
                 }
             }

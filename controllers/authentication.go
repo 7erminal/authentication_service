@@ -330,7 +330,7 @@ func (c *AuthenticationController) GenerateInviteToken() {
 // @Title Check invite token validity
 // @Description Check Token Expiry
 // @Param	body		body 	requestsDTOs.DecryptRequestDTO	true		"body for Authentication content"
-// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Success 200 {object} responsesDTOs.InviteDecodeResponseDTO
 // @Failure 403 body is empty
 // @router /token/invite/verify [post]
 func (c *AuthenticationController) VerifyInviteToken() {
@@ -347,8 +347,10 @@ func (c *AuthenticationController) VerifyInviteToken() {
 
 		logs.Info("Split Token is ", splitToken[0], " and ", splitToken[1])
 
+		var token responsesDTOs.TokenDestructureResponseDTO = responsesDTOs.TokenDestructureResponseDTO{Email: splitToken[0], RoleId: splitToken[1]}
+
 		// if splitToken[0] == q.Email {
-		var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "SUCCESS", StatusDesc: "Successfully verified token."}
+		var resp = responsesDTOs.InviteDecodeResponseDTO{StatusCode: 200, Value: &token, StatusDesc: "Successfully verified token."}
 		c.Data["json"] = resp
 		// } else {
 		// 	logs.Error("Error validating token...")
@@ -373,7 +375,7 @@ func (c *AuthenticationController) VerifyInviteToken() {
 		// }
 	} else {
 		logs.Error("Error validating token...", err.Error())
-		var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "", StatusDesc: "Error validating token"}
+		var resp = responsesDTOs.InviteDecodeResponseDTO{StatusCode: 703, Value: nil, StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()
