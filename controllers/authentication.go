@@ -117,9 +117,19 @@ func (c *AuthenticationController) LoginToken() {
 						c.Data["json"] = resp
 					}
 				} else {
-					logs.Error("Error updating token. ", err.Error())
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-					c.Data["json"] = resp
+					t := time.Unix(expiryTime, 0)
+					tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
+						c.Data["json"] = resp
+					} else {
+						logs.Error("Error adding token. ", err.Error())
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+						c.Data["json"] = resp
+					}
+					// logs.Error("Error updating token. ")
+					// var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+					// c.Data["json"] = resp
 				}
 			}
 		}
