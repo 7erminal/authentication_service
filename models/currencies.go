@@ -8,78 +8,62 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
 
-type Users struct {
-	UserId        int64 `orm:"auto"`
-	UserType      int
-	Customer      *Customers `orm:"rel(fk);column(customer_id)"`
-	ImagePath     string     `orm:"column(image_path);size(200);null"`
-	FullName      string     `orm:"size(255)"`
-	Username      string     `orm:"size(255)"`
-	Password      string     `orm:"size(255)"`
-	Email         string     `orm:"size(255)"`
-	PhoneNumber   string     `orm:"size(255)"`
-	Gender        string     `orm:"size(10)"`
-	Dob           time.Time  `orm:"type(datetime)"`
-	Address       string     `orm:"size(255)"`
-	IdType        string     `orm:"size(5)"`
-	IdNumber      string     `orm:"size(100)"`
-	MaritalStatus string     `orm:"size(255);omitempty"`
-	Role          *Roles     `orm:"rel(fk);column(role);omitempty;null"`
-	Active        int
-	IsVerified    bool
-	DateCreated   time.Time `orm:"type(datetime)"`
-	DateModified  time.Time `orm:"type(datetime)"`
-	CreatedBy     int
-	ModifiedBy    int
+type Currencies struct {
+	CurrencyId   int64     `orm:"auto;omitempty"`
+	Symbol       string    `orm:"size(20)"`
+	Currency     string    `orm:"size(50)"`
+	Active       int       `orm:"omitempty"`
+	DateCreated  time.Time `orm:"type(datetime);omitempty"`
+	DateModified time.Time `orm:"type(datetime);omitempty"`
+	CreatedBy    int       `orm:"omitempty"`
+	ModifiedBy   int       `orm:"omitempty"`
 }
 
 func init() {
-	orm.RegisterModel(new(Users))
+	orm.RegisterModel(new(Currencies))
 }
 
-// AddUsers insert a new Users into database and returns
+// AddCurrencies insert a new Currencies into database and returns
 // last inserted Id on success.
-func AddUsers(m *Users) (id int64, err error) {
+func AddCurrencies(m *Currencies) (id int64, err error) {
 	o := orm.NewOrm()
 	id, err = o.Insert(m)
 	return
 }
 
-// GetUsersById retrieves Users by Id. Returns error if
+// GetCurrenciesById retrieves Currencies by Id. Returns error if
 // Id doesn't exist
-func GetUsersById(id int64) (v *Users, err error) {
+func GetCurrenciesById(id int64) (v *Currencies, err error) {
 	o := orm.NewOrm()
-	v = &Users{UserId: id}
-	if err = o.QueryTable(new(Users)).Filter("UserId", id).RelatedSel().One(v); err == nil {
+	v = &Currencies{CurrencyId: id}
+	if err = o.QueryTable(new(Currencies)).Filter("CurrencyId", id).RelatedSel().One(v); err == nil {
+		logs.Info("Currency returned is ", v)
 		return v, nil
 	}
 	return nil, err
 }
 
-// GetUsersById retrieves Users by username. Returns error if
+// GetCurrenciesById retrieves Currencies by Id. Returns error if
 // Id doesn't exist
-func GetUsersByUsername(username string) (v *Users, err error) {
+func GetCurrenciesByName(currency string) (v *Currencies, err error) {
 	o := orm.NewOrm()
-	v = &Users{Email: username}
-	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
+	v = &Currencies{Currency: currency}
+	if err = o.QueryTable(new(Currencies)).Filter("Currency", currency).RelatedSel().One(v); err == nil {
+		logs.Info("Currency returned is ", v)
 		return v, nil
 	}
-
 	return nil, err
 }
 
-// GetAllUsers retrieves all Users matches certain condition. Returns empty list if
+// GetAllCurrencies retrieves all Currencies matches certain condition. Returns empty list if
 // no records exist
-func GetAllUsers(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllCurrencies(query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
-	qs := o.QueryTable(new(Users))
+	qs := o.QueryTable(new(Currencies))
 	// query k=v
 	for k, v := range query {
 		// rewrite dot-notation to Object__Attribute
@@ -125,7 +109,7 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 		}
 	}
 
-	var l []Users
+	var l []Currencies
 	qs = qs.OrderBy(sortFields...).RelatedSel()
 	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
 		if len(fields) == 0 {
@@ -148,11 +132,11 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 	return nil, err
 }
 
-// UpdateUsers updates Users by Id and returns error if
+// UpdateCurrencies updates Currencies by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateUsersById(m *Users) (err error) {
+func UpdateCurrenciesById(m *Currencies) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: m.UserId}
+	v := Currencies{CurrencyId: m.CurrencyId}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
@@ -163,15 +147,15 @@ func UpdateUsersById(m *Users) (err error) {
 	return
 }
 
-// DeleteUsers deletes Users by Id and returns error if
+// DeleteCurrencies deletes Currencies by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteUsers(id int64) (err error) {
+func DeleteCurrencies(id int64) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: id}
+	v := Currencies{CurrencyId: id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
-		if num, err = o.Delete(&Users{UserId: id}); err == nil {
+		if num, err = o.Delete(&Currencies{CurrencyId: id}); err == nil {
 			fmt.Println("Number of records deleted in database:", num)
 		}
 	}

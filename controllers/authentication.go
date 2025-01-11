@@ -55,6 +55,46 @@ func (c *AuthenticationController) Login() {
 			c.Data["json"] = resp
 
 		} else {
+			// cust, err := models.GetCustomersByUser(a)
+
+			// if err != nil {
+			// 	c.Data["json"] = err.Error()
+
+			// 	var resp = responsesDTOs.UserResponseDTO{StatusCode: 601, User: nil, StatusDesc: "Error verifying user"}
+			// 	c.Data["json"] = resp
+			// } else {
+			// 	logs.Info("Getting the customer ", cust.Branch.Country.DefaultCurrency.CurrencyId)
+
+			// 	userResp := responsesDTOs.UserResp{
+			// 		UserId:        a.UserId,
+			// 		ImagePath:     a.ImagePath,
+			// 		UserType:      a.UserType,
+			// 		FullName:      a.FullName,
+			// 		Username:      a.Username,
+			// 		Password:      a.Password,
+			// 		Email:         a.Email,
+			// 		PhoneNumber:   a.PhoneNumber,
+			// 		Gender:        a.Gender,
+			// 		Dob:           a.Dob,
+			// 		Address:       a.Address,
+			// 		IdType:        a.IdType,
+			// 		IdNumber:      a.IdNumber,
+			// 		MaritalStatus: a.MaritalStatus,
+			// 		Active:        a.Active,
+			// 		Role:          a.Role,
+			// 		IsVerified:    a.IsVerified,
+			// 		DateCreated:   a.DateCreated,
+			// 		DateModified:  a.DateModified,
+			// 		CreatedBy:     a.CreatedBy,
+			// 		ModifiedBy:    a.ModifiedBy,
+			// 		Branch:        cust.Branch,
+			// 	}
+			// 	c.Ctx.Output.SetStatus(200)
+
+			// 	var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: &userResp, StatusDesc: "User has been authenticated"}
+			// 	c.Data["json"] = resp
+			// }
+
 			c.Ctx.Output.SetStatus(200)
 
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: a, StatusDesc: "User has been authenticated"}
@@ -174,32 +214,32 @@ func (c *AuthenticationController) VerifyOTP() {
 				if otp.ExpiryDate.After(time.Now()) {
 					if otp.Status == 1 {
 						logs.Debug("OTP has been used already.")
-						var resp = responsesDTOs.UserResponseDTO{StatusCode: 407, User: v, StatusDesc: "OTP has already been used."}
+						var resp = responsesDTOs.UserResponseDTO{StatusCode: 407, User: nil, StatusDesc: "OTP has already been used."}
 						c.Data["json"] = resp
 					} else {
 						otp.Status = 1
 						if err := models.UpdateUserOtpById(otp); err == nil {
-							var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: v, StatusDesc: "OTP Verified successfully"}
+							var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "OTP Verified successfully"}
 							c.Data["json"] = resp
 						} else {
 							logs.Error("Error is ", err.Error())
-							var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: v, StatusDesc: "Error occurred inserting record."}
+							var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "Error occurred inserting record."}
 							c.Data["json"] = resp
 						}
 					}
 				} else {
 					logs.Debug("OTP has expired. Time to enter OTP of 5 mins exeeded.")
-					var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: v, StatusDesc: "OTP Expired"}
+					var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "OTP Expired"}
 					c.Data["json"] = resp
 				}
 			} else {
 				logs.Debug("OTPs do not match ")
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: 402, User: v, StatusDesc: "OTP Verification failed"}
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: 402, User: nil, StatusDesc: "OTP Verification failed"}
 				c.Data["json"] = resp
 			}
 		} else {
 			logs.Debug("Error: ", err.Error(), " User not in OTP Table ")
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: v, StatusDesc: "OTP Expired"}
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "OTP Expired"}
 			c.Data["json"] = resp
 		}
 		// Generate random number
@@ -253,11 +293,11 @@ func (c *AuthenticationController) ResendOTP() {
 		if _, err := models.AddUserOtp(&otpModel); err == nil {
 			functions.SendEmail(v.Email, randNum)
 
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: v, StatusDesc: "Email sent successfully"}
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "Email sent successfully"}
 			c.Data["json"] = resp
 		} else {
 			logs.Error("Error inserting OTP...", err.Error())
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: v, StatusDesc: "Error sending email"}
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error sending email"}
 			c.Data["json"] = resp
 		}
 	}
@@ -280,15 +320,54 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 	if token, err := functions.CheckTokenExpiry(q.Value); err == nil {
 		if token.IsValid {
 			logs.Info("Token is still valid")
+			// cust, err := models.GetCustomersByUser(token.User)
+
+			// if err != nil {
+			// 	c.Data["json"] = err.Error()
+
+			// 	var resp = responsesDTOs.UserResponseDTO{StatusCode: 601, User: nil, StatusDesc: "Error verifying user"}
+			// 	c.Data["json"] = resp
+			// } else {
+			// 	logs.Info("Getting the customer ", cust.Branch.Country.DefaultCurrency.CurrencyId)
+
+			// 	userResp := responsesDTOs.UserResp{
+			// 		UserId:        token.User.UserId,
+			// 		ImagePath:     token.User.ImagePath,
+			// 		UserType:      token.User.UserType,
+			// 		FullName:      token.User.FullName,
+			// 		Username:      token.User.Username,
+			// 		Password:      token.User.Password,
+			// 		Email:         token.User.Email,
+			// 		PhoneNumber:   token.User.PhoneNumber,
+			// 		Gender:        token.User.Gender,
+			// 		Dob:           token.User.Dob,
+			// 		Address:       token.User.Address,
+			// 		IdType:        token.User.IdType,
+			// 		IdNumber:      token.User.IdNumber,
+			// 		MaritalStatus: token.User.MaritalStatus,
+			// 		Active:        token.User.Active,
+			// 		Role:          token.User.Role,
+			// 		IsVerified:    token.User.IsVerified,
+			// 		DateCreated:   token.User.DateCreated,
+			// 		DateModified:  token.User.DateModified,
+			// 		CreatedBy:     token.User.CreatedBy,
+			// 		ModifiedBy:    token.User.ModifiedBy,
+			// 		Branch:        cust.Branch,
+			// 	}
+
+			// 	var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: &userResp, StatusDesc: "Token is valid"}
+			// 	c.Data["json"] = resp
+			// }
+
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: token.User, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: token.User, StatusDesc: "Invalid token"}
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Invalid token"}
 			c.Data["json"] = resp
 		}
 	} else {
 		logs.Error("Error validating token...", err.Error())
-		var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: token.User, StatusDesc: "Error validating token"}
+		var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()

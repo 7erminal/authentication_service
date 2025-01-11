@@ -10,76 +10,59 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-type Users struct {
-	UserId        int64 `orm:"auto"`
-	UserType      int
-	Customer      *Customers `orm:"rel(fk);column(customer_id)"`
-	ImagePath     string     `orm:"column(image_path);size(200);null"`
-	FullName      string     `orm:"size(255)"`
-	Username      string     `orm:"size(255)"`
-	Password      string     `orm:"size(255)"`
-	Email         string     `orm:"size(255)"`
-	PhoneNumber   string     `orm:"size(255)"`
-	Gender        string     `orm:"size(10)"`
-	Dob           time.Time  `orm:"type(datetime)"`
-	Address       string     `orm:"size(255)"`
-	IdType        string     `orm:"size(5)"`
-	IdNumber      string     `orm:"size(100)"`
-	MaritalStatus string     `orm:"size(255);omitempty"`
-	Role          *Roles     `orm:"rel(fk);column(role);omitempty;null"`
-	Active        int
-	IsVerified    bool
-	DateCreated   time.Time `orm:"type(datetime)"`
-	DateModified  time.Time `orm:"type(datetime)"`
-	CreatedBy     int
-	ModifiedBy    int
+type Branches struct {
+	BranchId     int64      `orm:"auto"`
+	Branch       string     `orm:"size(80)"`
+	Country      *Countries `orm:"rel(fk);column(country)"`
+	Location     string
+	PhoneNumber  string
+	Active       int       `orm:"omitempty"`
+	DateCreated  time.Time `orm:"type(datetime);omitempty"`
+	DateModified time.Time `orm:"type(datetime);omitempty"`
+	CreatedBy    int       `orm:"omitempty"`
+	ModifiedBy   int       `orm:"omitempty"`
 }
 
 func init() {
-	orm.RegisterModel(new(Users))
+	orm.RegisterModel(new(Branches))
 }
 
-// AddUsers insert a new Users into database and returns
+// AddBranches insert a new Branches into database and returns
 // last inserted Id on success.
-func AddUsers(m *Users) (id int64, err error) {
+func AddBranches(m *Branches) (id int64, err error) {
 	o := orm.NewOrm()
 	id, err = o.Insert(m)
 	return
 }
 
-// GetUsersById retrieves Users by Id. Returns error if
+// GetBranchesById retrieves Branches by Id. Returns error if
 // Id doesn't exist
-func GetUsersById(id int64) (v *Users, err error) {
+func GetBranchesById(id int64) (v *Branches, err error) {
 	o := orm.NewOrm()
-	v = &Users{UserId: id}
-	if err = o.QueryTable(new(Users)).Filter("UserId", id).RelatedSel().One(v); err == nil {
+	v = &Branches{BranchId: id}
+	if err = o.QueryTable(new(Branches)).Filter("BranchId", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err
 }
 
-// GetUsersById retrieves Users by username. Returns error if
+// GetBranchesById retrieves Branches by Id. Returns error if
 // Id doesn't exist
-func GetUsersByUsername(username string) (v *Users, err error) {
+func GetBranchesByName(name string) (v *Branches, err error) {
 	o := orm.NewOrm()
-	v = &Users{Email: username}
-	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
+	v = &Branches{Branch: name}
+	if err = o.QueryTable(new(Branches)).Filter("Branch", name).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
-
 	return nil, err
 }
 
-// GetAllUsers retrieves all Users matches certain condition. Returns empty list if
+// GetAllBranches retrieves all Branches matches certain condition. Returns empty list if
 // no records exist
-func GetAllUsers(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllBranches(query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
-	qs := o.QueryTable(new(Users))
+	qs := o.QueryTable(new(Branches))
 	// query k=v
 	for k, v := range query {
 		// rewrite dot-notation to Object__Attribute
@@ -125,7 +108,7 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 		}
 	}
 
-	var l []Users
+	var l []Branches
 	qs = qs.OrderBy(sortFields...).RelatedSel()
 	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
 		if len(fields) == 0 {
@@ -148,11 +131,11 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 	return nil, err
 }
 
-// UpdateUsers updates Users by Id and returns error if
+// UpdateBranches updates Branches by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateUsersById(m *Users) (err error) {
+func UpdateBranchesById(m *Branches) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: m.UserId}
+	v := Branches{BranchId: m.BranchId}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
@@ -163,15 +146,15 @@ func UpdateUsersById(m *Users) (err error) {
 	return
 }
 
-// DeleteUsers deletes Users by Id and returns error if
+// DeleteBranches deletes Branches by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteUsers(id int64) (err error) {
+func DeleteBranches(id int64) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: id}
+	v := Branches{BranchId: id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
-		if num, err = o.Delete(&Users{UserId: id}); err == nil {
+		if num, err = o.Delete(&Branches{BranchId: id}); err == nil {
 			fmt.Println("Number of records deleted in database:", num)
 		}
 	}

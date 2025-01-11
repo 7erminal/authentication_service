@@ -10,76 +10,46 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-type Users struct {
-	UserId        int64 `orm:"auto"`
-	UserType      int
-	Customer      *Customers `orm:"rel(fk);column(customer_id)"`
-	ImagePath     string     `orm:"column(image_path);size(200);null"`
-	FullName      string     `orm:"size(255)"`
-	Username      string     `orm:"size(255)"`
-	Password      string     `orm:"size(255)"`
-	Email         string     `orm:"size(255)"`
-	PhoneNumber   string     `orm:"size(255)"`
-	Gender        string     `orm:"size(10)"`
-	Dob           time.Time  `orm:"type(datetime)"`
-	Address       string     `orm:"size(255)"`
-	IdType        string     `orm:"size(5)"`
-	IdNumber      string     `orm:"size(100)"`
-	MaritalStatus string     `orm:"size(255);omitempty"`
-	Role          *Roles     `orm:"rel(fk);column(role);omitempty;null"`
-	Active        int
-	IsVerified    bool
-	DateCreated   time.Time `orm:"type(datetime)"`
-	DateModified  time.Time `orm:"type(datetime)"`
-	CreatedBy     int
-	ModifiedBy    int
+type Customer_categories struct {
+	CustomerCategoryId int64     `orm:"auto"`
+	Category           string    `orm:"size(100)"`
+	Description        string    `orm:"size(255); null"`
+	DateCreated        time.Time `orm:"type(datetime)"`
+	DateModified       time.Time `orm:"type(datetime)"`
+	CreatedBy          int
+	ModifiedBy         int
+	Active             int
 }
 
 func init() {
-	orm.RegisterModel(new(Users))
+	orm.RegisterModel(new(Customer_categories))
 }
 
-// AddUsers insert a new Users into database and returns
+// AddCustomer_categories insert a new Customer_categories into database and returns
 // last inserted Id on success.
-func AddUsers(m *Users) (id int64, err error) {
+func AddCustomer_categories(m *Customer_categories) (id int64, err error) {
 	o := orm.NewOrm()
 	id, err = o.Insert(m)
 	return
 }
 
-// GetUsersById retrieves Users by Id. Returns error if
+// GetCustomer_categoriesById retrieves Customer_categories by Id. Returns error if
 // Id doesn't exist
-func GetUsersById(id int64) (v *Users, err error) {
+func GetCustomer_categoriesById(id int64) (v *Customer_categories, err error) {
 	o := orm.NewOrm()
-	v = &Users{UserId: id}
-	if err = o.QueryTable(new(Users)).Filter("UserId", id).RelatedSel().One(v); err == nil {
+	v = &Customer_categories{CustomerCategoryId: id}
+	if err = o.QueryTable(new(Customer_categories)).Filter("CustomerCategoryId", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err
 }
 
-// GetUsersById retrieves Users by username. Returns error if
-// Id doesn't exist
-func GetUsersByUsername(username string) (v *Users, err error) {
-	o := orm.NewOrm()
-	v = &Users{Email: username}
-	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	}
-
-	return nil, err
-}
-
-// GetAllUsers retrieves all Users matches certain condition. Returns empty list if
+// GetAllCustomer_categories retrieves all Customer_categories matches certain condition. Returns empty list if
 // no records exist
-func GetAllUsers(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllCustomer_categories(query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
-	qs := o.QueryTable(new(Users))
+	qs := o.QueryTable(new(Customer_categories))
 	// query k=v
 	for k, v := range query {
 		// rewrite dot-notation to Object__Attribute
@@ -125,7 +95,7 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 		}
 	}
 
-	var l []Users
+	var l []Customer_categories
 	qs = qs.OrderBy(sortFields...).RelatedSel()
 	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
 		if len(fields) == 0 {
@@ -148,11 +118,11 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 	return nil, err
 }
 
-// UpdateUsers updates Users by Id and returns error if
+// UpdateCustomer_categories updates Customer_categories by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateUsersById(m *Users) (err error) {
+func UpdateCustomer_categoriesById(m *Customer_categories) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: m.UserId}
+	v := Customer_categories{CustomerCategoryId: m.CustomerCategoryId}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
@@ -163,15 +133,15 @@ func UpdateUsersById(m *Users) (err error) {
 	return
 }
 
-// DeleteUsers deletes Users by Id and returns error if
+// DeleteCustomer_categories deletes Customer_categories by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteUsers(id int64) (err error) {
+func DeleteCustomer_categories(id int64) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: id}
+	v := Customer_categories{CustomerCategoryId: id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
-		if num, err = o.Delete(&Users{UserId: id}); err == nil {
+		if num, err = o.Delete(&Customer_categories{CustomerCategoryId: id}); err == nil {
 			fmt.Println("Number of records deleted in database:", num)
 		}
 	}

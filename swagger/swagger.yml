@@ -219,9 +219,208 @@ definitions:
         type: string
       Username:
         type: string
+  models.Branches:
+    title: Branches
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      Branch:
+        type: string
+      BranchId:
+        type: integer
+        format: int64
+      Country:
+        $ref: '#/definitions/models.Countries'
+      CreatedBy:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      Location:
+        type: string
+      ModifiedBy:
+        type: integer
+        format: int64
+      PhoneNumber:
+        type: string
+  models.Countries:
+    title: Countries
+    type: object
+    properties:
+      Country:
+        type: string
+      CountryCode:
+        type: string
+      CountryId:
+        type: integer
+        format: int64
+      CreatedBy:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      DefaultCurrency:
+        $ref: '#/definitions/models.Currencies'
+      Description:
+        type: string
+      ModifiedBy:
+        type: integer
+        format: int64
+  models.Currencies:
+    title: Currencies
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      CreatedBy:
+        type: integer
+        format: int64
+      Currency:
+        type: string
+      CurrencyId:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      ModifiedBy:
+        type: integer
+        format: int64
+      Symbol:
+        type: string
+  models.Customer_categories:
+    title: Customer_categories
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      Category:
+        type: string
+      CreatedBy:
+        type: integer
+        format: int64
+      CustomerCategoryId:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      Description:
+        type: string
+      ModifiedBy:
+        type: integer
+        format: int64
+  models.Customers:
+    title: Customers
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      Branch:
+        $ref: '#/definitions/models.Branches'
+      CreatedBy:
+        type: integer
+        format: int64
+      CustomerCategory:
+        $ref: '#/definitions/models.Customer_categories'
+      CustomerId:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      ModifiedBy:
+        type: integer
+        format: int64
+      Nickname:
+        type: string
+      Shop:
+        $ref: '#/definitions/models.Shops'
+      User:
+        $ref: '#/definitions/models.Users'
   models.OAuthAuthentication:
     title: OAuthAuthentication
     type: object
+  models.Roles:
+    title: Roles
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      CreatedBy:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      Description:
+        type: string
+      ModifiedBy:
+        type: integer
+        format: int64
+      Role:
+        type: string
+      RoleId:
+        type: integer
+        format: int64
+  models.Shops:
+    title: Shops
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      CreatedBy:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      Image:
+        type: string
+      ModifiedBy:
+        type: integer
+        format: int64
+      ShopAssistantName:
+        type: string
+      ShopAssistantNumber:
+        type: string
+      ShopDescription:
+        type: string
+      ShopId:
+        type: integer
+        format: int64
+      ShopName:
+        type: string
   models.UserResponseDTO:
     title: UserResponseDTO
     type: object
@@ -266,6 +465,8 @@ definitions:
       CreatedBy:
         type: integer
         format: int64
+      Customer:
+        $ref: '#/definitions/models.Customers'
       DateCreated:
         type: string
         format: datetime
@@ -285,6 +486,8 @@ definitions:
         type: string
       IdType:
         type: string
+      ImagePath:
+        type: string
       IsVerified:
         type: boolean
       MaritalStatus:
@@ -296,6 +499,8 @@ definitions:
         type: string
       PhoneNumber:
         type: string
+      Role:
+        $ref: '#/definitions/models.Roles'
       UserId:
         type: integer
         format: int64
