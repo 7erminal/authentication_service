@@ -6,6 +6,7 @@ import (
 	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"time"
 
@@ -176,6 +177,67 @@ func (c *AuthenticationController) LoginToken() {
 	} else {
 		logs.Error(err.Error())
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Unidentified user"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// ChangePassword ...
+// @Title Change Password
+// @Description Change user password
+// @Param	id		path 	string	true		"The id you want to update"
+// @Param	body		body 	requestsDTOs.ChangePassword	true		"body for Change password content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /change-password/:id [put]
+func (c *AuthenticationController) ChangePassword() {
+	idStr := c.Ctx.Input.Param(":id")
+	id, _ := strconv.ParseInt(idStr, 0, 64)
+
+	var v requestsDTOs.ChangePassword
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.OldPassword, v.NewPassword)
+
+	if a, err := models.GetUsersById(id); err == nil {
+		// Compare the stored hashed password, with the hashed version of the password that was received
+		if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.OldPassword)); err != nil {
+			// If the two passwords don't match, return a 401 status
+			c.Data["json"] = err.Error()
+
+			logs.Error(err.Error())
+
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Old password does not match"}
+			c.Data["json"] = resp
+
+		} else {
+			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+
+			if errr == nil {
+				logs.Debug(hashedPassword)
+
+				a.Password = string(hashedPassword)
+
+				logs.Debug("Sending", v.NewPassword)
+
+				// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+			} else {
+				logs.Error("Error hashing password ", errr.Error())
+			}
+
+			if err := models.UpdateUsersById(a); err == nil {
+				c.Ctx.Output.SetStatus(200)
+
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "User password has been changed successfully"}
+				c.Data["json"] = resp
+			} else {
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
+				c.Data["json"] = resp
+			}
+		}
+	} else {
+		logs.Error(err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()

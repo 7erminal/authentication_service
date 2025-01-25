@@ -15,6 +15,44 @@
     },
     "basePath": "/v1",
     "paths": {
+        "/auth/change-password/{id}": {
+            "put": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Change user password\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Change Password",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Change password content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.ChangePassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [
@@ -710,6 +748,18 @@
                     "format": "int64"
                 },
                 "Username": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestsDTOs.ChangePassword": {
+            "title": "ChangePassword",
+            "type": "object",
+            "properties": {
+                "NewPassword": {
+                    "type": "string"
+                },
+                "OldPassword": {
                     "type": "string"
                 }
             }
