@@ -10,76 +10,70 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 )
 
-type Users struct {
-	UserId        int64 `orm:"auto"`
-	UserType      int
-	UserDetails   *UserExtraDetails `orm:"rel(fk);column(user_details_id);null"`
-	ImagePath     string            `orm:"column(image_path);size(200);null"`
-	FullName      string            `orm:"size(255)"`
-	Username      string            `orm:"size(255)"`
-	Password      string            `orm:"size(255)"`
-	Email         string            `orm:"size(255)"`
-	PhoneNumber   string            `orm:"size(255)"`
-	Gender        string            `orm:"size(10)"`
-	Dob           time.Time         `orm:"type(datetime)"`
-	Address       string            `orm:"size(255)"`
-	IdType        string            `orm:"size(5)"`
-	IdNumber      string            `orm:"size(100)"`
-	MaritalStatus string            `orm:"size(255);omitempty"`
-	Role          *Roles            `orm:"rel(fk);column(role);omitempty;null"`
-	Active        int
-	IsVerified    bool
+type UserExtraDetails struct {
+	UserDetailsId int64     `orm:"auto"`
+	User          int64     `orm:"column(user_id)"`
+	Branch        *Branches `orm:"rel(fk);column(branch);omitempty;null"`
+	Shop          *Shops    `orm:"rel(fk);omitempty;null"`
+	Nickname      string    `orm:"size(100);omitempty;null"`
 	DateCreated   time.Time `orm:"type(datetime)"`
 	DateModified  time.Time `orm:"type(datetime)"`
 	CreatedBy     int
 	ModifiedBy    int
+	Active        int
 }
 
 func init() {
-	orm.RegisterModel(new(Users))
+	orm.RegisterModel(new(UserExtraDetails))
 }
 
-// AddUsers insert a new Users into database and returns
+// AddCustomers insert a new Customers into database and returns
 // last inserted Id on success.
-func AddUsers(m *Users) (id int64, err error) {
+func AddUserExtraDetails(m *UserExtraDetails) (id int64, err error) {
 	o := orm.NewOrm()
 	id, err = o.Insert(m)
 	return
 }
 
-// GetUsersById retrieves Users by Id. Returns error if
+// GetCustomersById retrieves Customers by Id. Returns error if
 // Id doesn't exist
-func GetUsersById(id int64) (v *Users, err error) {
+func GetUserExtraDetailsById(id int64) (v *UserExtraDetails, err error) {
 	o := orm.NewOrm()
-	v = &Users{UserId: id}
-	if err = o.QueryTable(new(Users)).Filter("UserId", id).RelatedSel().One(v); err == nil {
+	v = &UserExtraDetails{UserDetailsId: id}
+	if err = o.QueryTable(new(UserExtraDetails)).Filter("UserDetailsId", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err
 }
 
-// GetUsersById retrieves Users by username. Returns error if
+// GetCustomersByUserId retrieves Customers by User Id. Returns error if
 // Id doesn't exist
-func GetUsersByUsername(username string) (v *Users, err error) {
+func GetUserExtraDetailsByUser(user int64) (v *UserExtraDetails, err error) {
 	o := orm.NewOrm()
-	v = &Users{Email: username}
-	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
-		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
+	v = &UserExtraDetails{User: user}
+	if err = o.QueryTable(new(UserExtraDetails)).Filter("User", user).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
-
 	return nil, err
 }
 
-// GetAllUsers retrieves all Users matches certain condition. Returns empty list if
+// GetCustomersByUserId retrieves Customers by User Id. Returns error if
+// Id doesn't exist
+func GetUserExtraDetailsByBranch(branch *Branches) (v *UserExtraDetails, err error) {
+	o := orm.NewOrm()
+	v = &UserExtraDetails{Branch: branch}
+	if err = o.QueryTable(new(UserExtraDetails)).Filter("Branch", branch).RelatedSel().One(v); err == nil {
+		return v, nil
+	}
+	return nil, err
+}
+
+// GetAllCustomers retrieves all Customers matches certain condition. Returns empty list if
 // no records exist
-func GetAllUsers(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllUserExtraDetails(query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
-	qs := o.QueryTable(new(Users))
+	qs := o.QueryTable(new(UserExtraDetails))
 	// query k=v
 	for k, v := range query {
 		// rewrite dot-notation to Object__Attribute
@@ -125,9 +119,11 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 		}
 	}
 
-	var l []Users
+	var l []UserExtraDetails
 	qs = qs.OrderBy(sortFields...).RelatedSel()
-	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
+
+	// Without Limit
+	if _, err = qs.All(&l, fields...); err == nil {
 		if len(fields) == 0 {
 			for _, v := range l {
 				ml = append(ml, v)
@@ -145,14 +141,34 @@ func GetAllUsers(query map[string]string, fields []string, sortby []string, orde
 		}
 		return ml, nil
 	}
+
+	// With limit
+	// if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
+	// 	if len(fields) == 0 {
+	// 		for _, v := range l {
+	// 			ml = append(ml, v)
+	// 		}
+	// 	} else {
+	// 		// trim unused fields
+	// 		for _, v := range l {
+	// 			m := make(map[string]interface{})
+	// 			val := reflect.ValueOf(v)
+	// 			for _, fname := range fields {
+	// 				m[fname] = val.FieldByName(fname).Interface()
+	// 			}
+	// 			ml = append(ml, m)
+	// 		}
+	// 	}
+	// 	return ml, nil
+	// }
 	return nil, err
 }
 
-// UpdateUsers updates Users by Id and returns error if
+// UpdateCustomers updates Customers by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateUsersById(m *Users) (err error) {
+func UpdateUserExtraDetailsById(m *UserExtraDetails) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: m.UserId}
+	v := UserExtraDetails{UserDetailsId: m.UserDetailsId}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
@@ -163,15 +179,15 @@ func UpdateUsersById(m *Users) (err error) {
 	return
 }
 
-// DeleteUsers deletes Users by Id and returns error if
+// DeleteCustomers deletes Customers by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteUsers(id int64) (err error) {
+func DeleteUserExtraDetails(id int64) (err error) {
 	o := orm.NewOrm()
-	v := Users{UserId: id}
+	v := UserExtraDetails{UserDetailsId: id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
-		if num, err = o.Delete(&Users{UserId: id}); err == nil {
+		if num, err = o.Delete(&UserExtraDetails{UserDetailsId: id}); err == nil {
 			fmt.Println("Number of records deleted in database:", num)
 		}
 	}

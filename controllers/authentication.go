@@ -381,7 +381,7 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 
 	if token, err := functions.CheckTokenExpiry(q.Value); err == nil {
 		if token.IsValid {
-			logs.Info("Token is still valid")
+			logs.Info("Token is still valid. User is ", token.User)
 			// cust, err := models.GetCustomersByUser(token.User)
 
 			// if err != nil {

@@ -329,64 +329,6 @@ definitions:
         format: int64
       Symbol:
         type: string
-  models.Customer_categories:
-    title: Customer_categories
-    type: object
-    properties:
-      Active:
-        type: integer
-        format: int64
-      Category:
-        type: string
-      CreatedBy:
-        type: integer
-        format: int64
-      CustomerCategoryId:
-        type: integer
-        format: int64
-      DateCreated:
-        type: string
-        format: datetime
-      DateModified:
-        type: string
-        format: datetime
-      Description:
-        type: string
-      ModifiedBy:
-        type: integer
-        format: int64
-  models.Customers:
-    title: Customers
-    type: object
-    properties:
-      Active:
-        type: integer
-        format: int64
-      Branch:
-        $ref: '#/definitions/models.Branches'
-      CreatedBy:
-        type: integer
-        format: int64
-      CustomerCategory:
-        $ref: '#/definitions/models.Customer_categories'
-      CustomerId:
-        type: integer
-        format: int64
-      DateCreated:
-        type: string
-        format: datetime
-      DateModified:
-        type: string
-        format: datetime
-      ModifiedBy:
-        type: integer
-        format: int64
-      Nickname:
-        type: string
-      Shop:
-        $ref: '#/definitions/models.Shops'
-      User:
-        $ref: '#/definitions/models.Users'
   models.OAuthAuthentication:
     title: OAuthAuthentication
     type: object
@@ -448,6 +390,37 @@ definitions:
         format: int64
       ShopName:
         type: string
+  models.UserExtraDetails:
+    title: UserExtraDetails
+    type: object
+    properties:
+      Active:
+        type: integer
+        format: int64
+      Branch:
+        $ref: '#/definitions/models.Branches'
+      CreatedBy:
+        type: integer
+        format: int64
+      DateCreated:
+        type: string
+        format: datetime
+      DateModified:
+        type: string
+        format: datetime
+      ModifiedBy:
+        type: integer
+        format: int64
+      Nickname:
+        type: string
+      Shop:
+        $ref: '#/definitions/models.Shops'
+      User:
+        type: integer
+        format: int64
+      UserDetailsId:
+        type: integer
+        format: int64
   models.UserResponseDTO:
     title: UserResponseDTO
     type: object
@@ -492,8 +465,6 @@ definitions:
       CreatedBy:
         type: integer
         format: int64
-      Customer:
-        $ref: '#/definitions/models.Customers'
       DateCreated:
         type: string
         format: datetime
@@ -528,6 +499,8 @@ definitions:
         type: string
       Role:
         $ref: '#/definitions/models.Roles'
+      UserDetails:
+        $ref: '#/definitions/models.UserExtraDetails'
       UserId:
         type: integer
         format: int64
