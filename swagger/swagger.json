@@ -53,6 +53,37 @@
                 }
             }
         },
+        "/auth/log-out": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Logout User\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Log Out",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.TokenDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "tags": [
@@ -138,6 +169,44 @@
                         "description": "",
                         "schema": {
                             "$ref": "#/definitions/responsesDTOs.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/reset-password/{id}": {
+            "put": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Reset user password\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Reset Password",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Change password content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.ResetPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
                         }
                     },
                     "403": {
@@ -753,11 +822,29 @@
                 }
             }
         },
+        "requestsDTOs.ResetPassword": {
+            "title": "ResetPassword",
+            "type": "object",
+            "properties": {
+                "NewPassword": {
+                    "type": "string"
+                }
+            }
+        },
         "requestsDTOs.StringRequestDTO": {
             "title": "StringRequestDTO",
             "type": "object",
             "properties": {
                 "Value": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestsDTOs.TokenDTO": {
+            "title": "TokenDTO",
+            "type": "object",
+            "properties": {
+                "Token": {
                     "type": "string"
                 }
             }

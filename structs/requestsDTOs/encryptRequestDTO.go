@@ -10,3 +10,7 @@ type DecryptRequestDTO struct {
 	Nonce string
 	Email string
 }
+
+type TokenDTO struct {
+	Token string
+}

@@ -29,6 +29,8 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("CheckTokenExpiry", c.CheckTokenExpiry)
 	c.Mapping("GenerateInviteToken", c.GenerateInviteToken)
 	c.Mapping("VerifyInviteToken", c.VerifyInviteToken)
+	c.Mapping("ChangePassword", c.ChangePassword)
+	c.Mapping("ResetPassword", c.ResetPassword)
 }
 
 // Post ...
@@ -235,6 +237,58 @@ func (c *AuthenticationController) ChangePassword() {
 				c.Data["json"] = resp
 			}
 		}
+	} else {
+		logs.Error(err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// Reset Password ...
+// @Title Reset Password
+// @Description Reset user password
+// @Param	id		path 	string	true		"The id you want to update"
+// @Param	body		body 	requestsDTOs.ResetPassword	true		"body for Change password content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /reset-password/:id [put]
+func (c *AuthenticationController) ResetPassword() {
+	idStr := c.Ctx.Input.Param(":id")
+	id, _ := strconv.ParseInt(idStr, 0, 64)
+
+	var v requestsDTOs.ResetPassword
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.NewPassword)
+
+	if a, err := models.GetUsersById(id); err == nil {
+		// Compare the stored hashed password, with the hashed version of the password that was received
+
+		hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+
+		if errr == nil {
+			logs.Debug(hashedPassword)
+
+			a.Password = string(hashedPassword)
+
+			logs.Debug("Sending", v.NewPassword)
+
+			// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+		} else {
+			logs.Error("Error hashing password ", errr.Error())
+		}
+
+		if err := models.UpdateUsersById(a); err == nil {
+			c.Ctx.Output.SetStatus(200)
+
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "User password has been changed successfully"}
+			c.Data["json"] = resp
+		} else {
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
+			c.Data["json"] = resp
+		}
+
 	} else {
 		logs.Error(err.Error())
 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
@@ -527,6 +581,36 @@ func (c *AuthenticationController) VerifyInviteToken() {
 	} else {
 		logs.Error("Error validating token...", err.Error())
 		var resp = responsesDTOs.InviteDecodeResponseDTO{StatusCode: 703, Value: nil, StatusDesc: "Error validating token"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// Log Out ...
+// @Title Log Out
+// @Description Logout User
+// @Param	body		body 	requestsDTOs.TokenDTO	true		"body for Authentication content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /log-out [post]
+func (c *AuthenticationController) Logout() {
+	var v requestsDTOs.TokenDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.Token)
+
+	if a, err := models.GetAccessTokensByToken(v.Token); err == nil {
+		a.ExpiresAt = time.Now()
+		a.Revoked = true
+		if err := models.UpdateAccessTokensById(a); err == nil {
+			c.Ctx.Output.SetStatus(200)
+
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "", StatusDesc: "User log out complete"}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error(err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Invalid request"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()

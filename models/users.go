@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 type Users struct {
@@ -64,10 +65,13 @@ func GetUsersByUsername(username string) (v *Users, err error) {
 	o := orm.NewOrm()
 	v = &Users{Email: username}
 	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
+		logs.Debug("Got not the email")
 		return v, nil
 	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
+		logs.Debug("Got not the Phone number")
 		return v, nil
 	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
+		logs.Debug("Got not the Username")
 		return v, nil
 	}
 
