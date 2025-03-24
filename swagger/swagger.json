@@ -215,6 +215,37 @@
                 }
             }
         },
+        "/auth/send-activation-code": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Send Activation Code\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Send Activation Code",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for SignUp content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.SendActivationCode"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/auth/token/check": {
             "post": {
                 "tags": [
@@ -300,6 +331,37 @@
                         "description": "",
                         "schema": {
                             "$ref": "#/definitions/responsesDTOs.InviteDecodeResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/verify-activation-code": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Verify Activation code\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Verify Activation Code",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Verify OTP content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.VerifyActivationCodeDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
                         }
                     },
                     "403": {
@@ -831,6 +893,15 @@
                 }
             }
         },
+        "requestsDTOs.SendActivationCode": {
+            "title": "SendActivationCode",
+            "type": "object",
+            "properties": {
+                "MobileNumber": {
+                    "type": "string"
+                }
+            }
+        },
         "requestsDTOs.StringRequestDTO": {
             "title": "StringRequestDTO",
             "type": "object",
@@ -858,6 +929,18 @@
             "type": "object",
             "properties": {
                 "Username": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestsDTOs.VerifyActivationCodeDTO": {
+            "title": "VerifyActivationCodeDTO",
+            "type": "object",
+            "properties": {
+                "MobileNumber": {
+                    "type": "string"
+                },
+                "Password": {
                     "type": "string"
                 }
             }

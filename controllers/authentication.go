@@ -6,6 +6,7 @@ import (
 	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -31,6 +32,8 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("VerifyInviteToken", c.VerifyInviteToken)
 	c.Mapping("ChangePassword", c.ChangePassword)
 	c.Mapping("ResetPassword", c.ResetPassword)
+	c.Mapping("SendActivationCode", c.SendActivationCode)
+	c.Mapping("VerifyActivationCode", c.VerifyActivationCode)
 }
 
 // Post ...
@@ -126,55 +129,61 @@ func (c *AuthenticationController) LoginToken() {
 
 	if a, err := models.GetUsersByUsername(v.Username); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
-		if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
-			// If the two passwords don't match, return a 401 status
-			c.Data["json"] = err.Error()
+		if a.Active == 1 {
+			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
+				// If the two passwords don't match, return a 401 status
+				c.Data["json"] = err.Error()
 
-			logs.Error(err.Error())
+				logs.Error(err.Error())
 
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Incorrect password"}
-			c.Data["json"] = resp
-
-		} else {
-			c.Ctx.Output.SetStatus(200)
-
-			token, expiryTime, err := functions.CreateToken(v.Username)
-
-			logs.Info("Token created is ", token)
-
-			if err != nil {
-				logs.Error("Error updating token. ", err.Error())
-				var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Incorrect password"}
 				c.Data["json"] = resp
+
 			} else {
-				updateToken := models.AccessTokens{User: a, Revoked: true}
-				if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
-					t := time.Unix(expiryTime, 0)
-					tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
-						var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
-						c.Data["json"] = resp
-					} else {
-						logs.Error("Error adding token. ", err.Error())
-						var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-						c.Data["json"] = resp
-					}
+				c.Ctx.Output.SetStatus(200)
+
+				token, expiryTime, err := functions.CreateToken(v.Username)
+
+				logs.Info("Token created is ", token)
+
+				if err != nil {
+					logs.Error("Error updating token. ", err.Error())
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+					c.Data["json"] = resp
 				} else {
-					t := time.Unix(expiryTime, 0)
-					tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
-						var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
-						c.Data["json"] = resp
+					updateToken := models.AccessTokens{User: a, Revoked: true}
+					if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
+						t := time.Unix(expiryTime, 0)
+						tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+						if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
+							c.Data["json"] = resp
+						} else {
+							logs.Error("Error adding token. ", err.Error())
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+							c.Data["json"] = resp
+						}
 					} else {
-						logs.Error("Error adding token. ", err.Error())
-						var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-						c.Data["json"] = resp
+						t := time.Unix(expiryTime, 0)
+						tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+						if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
+							c.Data["json"] = resp
+						} else {
+							logs.Error("Error adding token. ", err.Error())
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+							c.Data["json"] = resp
+						}
+						// logs.Error("Error updating token. ")
+						// var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+						// c.Data["json"] = resp
 					}
-					// logs.Error("Error updating token. ")
-					// var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-					// c.Data["json"] = resp
 				}
 			}
+		} else {
+			logs.Error("User is not active ", a.Active)
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 607, User: nil, StatusDesc: "Inactive user"}
+			c.Data["json"] = resp
 		}
 	} else {
 		logs.Error(err.Error())
@@ -334,6 +343,7 @@ func (c *AuthenticationController) VerifyOTP() {
 						c.Data["json"] = resp
 					} else {
 						otp.Status = 1
+
 						if err := models.UpdateUserOtpById(otp); err == nil {
 							var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "OTP Verified successfully"}
 							c.Data["json"] = resp
@@ -416,6 +426,140 @@ func (c *AuthenticationController) ResendOTP() {
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error sending email"}
 			c.Data["json"] = resp
 		}
+	}
+	c.ServeJSON()
+}
+
+// Send Activation Code ...
+// @Title Send Activation Code
+// @Description Send Activation Code
+// @Param	body		body 	requestsDTOs.SendActivationCode	true		"body for SignUp content"
+// @Success 201 {object} responsesDTOs.StringResponseDTO
+// @Failure 403 body is empty
+// @router /send-activation-code [post]
+func (c *AuthenticationController) SendActivationCode() {
+	// username := c.Ctx.Input.Param(":username")
+	var q requestsDTOs.SendActivationCode
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	// Generate random number
+	randNum := functions.EncodeToString(6)
+	// set OTP to 1111 for tests
+	randNum = "1111"
+	logs.Debug("Random number generated is ", randNum)
+	logs.Debug("Mobile number in request is ", q.MobileNumber)
+	proceed := false
+
+	if ac, err := models.GetActivationCodesByNumber(q.MobileNumber); err == nil {
+		// fmt.Printf("Value of v: %+v\n", ac)
+		for _, suc := range ac {
+			fmt.Printf("Value of v: %+v\n", suc)
+			singleAc, err := suc.(models.ActivationCodes)
+			logs.Debug("Activation...")
+			fmt.Printf("Type of v: %T\n", singleAc)
+			fmt.Printf("Value of v: %+v\n", singleAc)
+			logs.Debug(singleAc)
+			if !err {
+				singleAc.ExpiryDate = time.Now()
+				models.UpdateActivationCodesById(&singleAc)
+			}
+		}
+		proceed = true
+	} else {
+		proceed = true
+	}
+
+	if proceed {
+		expiryDate := time.Now().Local().Add(time.Hour*time.Duration(1) + time.Minute*time.Duration(0) + time.Second*time.Duration(0))
+
+		otpModel := models.ActivationCodes{Code: randNum, Number: q.MobileNumber, DateCreated: time.Now(), DateModified: time.Now(), ExpiryDate: expiryDate, Active: 1}
+
+		if _, err := models.AddActivationCodes(&otpModel); err == nil {
+			// Function to send Code via sms
+			// functions.SendEmail(v.Email, randNum)
+
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "SUCCESS", StatusDesc: "Email sent successfully"}
+			c.Data["json"] = resp
+		} else {
+			logs.Error("Error inserting Activation code...", err.Error())
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "FAILED", StatusDesc: "Error sending email"}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error("Unable to perform send code due to failure...")
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "FAILED", StatusDesc: "An error occurred when sending activation code. Please try again."}
+		c.Data["json"] = resp
+	}
+
+	c.ServeJSON()
+}
+
+// Verify Activation Code ...
+// @Title Verify Activation Code
+// @Description Verify Activation code
+// @Param	body		body 	requestsDTOs.VerifyActivationCodeDTO	true		"body for Verify OTP content"
+// @Success 201 {object} responsesDTOs.StringResponseDTO
+// @Failure 403 body is empty
+// @router /verify-activation-code [post]
+func (c *AuthenticationController) VerifyActivationCode() {
+	// username := c.Ctx.Input.Param(":username")
+	var q requestsDTOs.VerifyActivationCodeDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	logs.Debug("Got request with mobile number ", q.MobileNumber, " and pin ", q.Password)
+
+	if v, err := models.GetActivationCodeByNumber(q.MobileNumber); err != nil {
+		logs.Error("Code cannot be found. It either does not exist or has expired :: ", err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 604, Value: "FAILED", StatusDesc: "Code cannot be found. It either does not exist or has expired"}
+		// c.Data["json"] = err.Error()
+		c.Data["json"] = resp
+	} else {
+		// Get OTP
+
+		if q.Password == v.Code {
+			logs.Debug("OTP Passed")
+			logs.Debug("About to compare OTP expiry date...", v.ExpiryDate, " with date now ", time.Now())
+			if v.ExpiryDate.After(time.Now()) {
+
+				v.ExpiryDate = time.Now()
+				logs.Debug("Expiry date is now ", v.ExpiryDate, " and ID is ", v.ActivationCodeId)
+				if err := models.UpdateActivationCodesById(v); err == nil {
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "SUCCESS", StatusDesc: "OTP Verified successfully"}
+					c.Data["json"] = resp
+				} else {
+					logs.Error("Error occurred updating record ", err.Error())
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 403, Value: "FAILED", StatusDesc: "Error occurred updating record."}
+					c.Data["json"] = resp
+				}
+
+			} else {
+				logs.Debug("OTP has expired. Time to enter OTP of 5 mins exeeded.")
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 403, Value: "FAILED", StatusDesc: "OTP Expired"}
+				c.Data["json"] = resp
+			}
+		} else {
+			logs.Debug("OTPs do not match ")
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 402, Value: "FAILED", StatusDesc: "OTP Verification failed"}
+			c.Data["json"] = resp
+		}
+
+		// Generate random number
+		// randNum := functions.EncodeToString(6)
+		// logs.Debug("Random number generated is ", randNum)
+
+		// expiryDate := time.Now().Local().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(5) + time.Second*time.Duration(0))
+
+		// otpModel := models.User_otps{Code: randNum, User: v.UserId, Status: 2, DateCreated: time.Now(), DateModified: time.Now(), DateGenerated: time.Now(), ExpiryDate: expiryDate, Active: 1}
+
+		// if _, err := models.AddUser_otps(&otpModel); err == nil {
+		// 	functions.SendEmail(v.Email, randNum)
+
+		// 	var resp = models.UserResponseDTO{StatusCode: 200, User: v, StatusDesc: "Email sent successfully"}
+		// 	c.Data["json"] = resp
+		// } else {
+		// 	var resp = models.UserResponseDTO{StatusCode: 703, User: v, StatusDesc: "Error sending email"}
+		// 	c.Data["json"] = resp
+		// }
 	}
 	c.ServeJSON()
 }

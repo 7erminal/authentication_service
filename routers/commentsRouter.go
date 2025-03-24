@@ -63,6 +63,15 @@ func init() {
 
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
+            Method: "SendActivationCode",
+            Router: `/send-activation-code`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
             Method: "CheckTokenExpiry",
             Router: `/token/check`,
             AllowHTTPMethods: []string{"post"},
@@ -83,6 +92,15 @@ func init() {
         beego.ControllerComments{
             Method: "VerifyInviteToken",
             Router: `/token/invite/verify`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
+            Method: "VerifyActivationCode",
+            Router: `/verify-activation-code`,
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,

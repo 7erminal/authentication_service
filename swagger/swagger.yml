@@ -154,6 +154,28 @@ paths:
             $ref: '#/definitions/models.UserResponseDTO'
         "403":
           description: body is empty
+  /auth/send-activation-code:
+    post:
+      tags:
+      - auth
+      description: |-
+        Send Activation Code
+        <br>
+      operationId: AuthenticationController.Send Activation Code
+      parameters:
+      - in: body
+        name: body
+        description: body for SignUp content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.SendActivationCode'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/responsesDTOs.StringResponseDTO'
+        "403":
+          description: body is empty
   /auth/token/check:
     post:
       tags:
@@ -218,6 +240,28 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/responsesDTOs.InviteDecodeResponseDTO'
+        "403":
+          description: body is empty
+  /auth/verify-activation-code:
+    post:
+      tags:
+      - auth
+      description: |-
+        Verify Activation code
+        <br>
+      operationId: AuthenticationController.Verify Activation Code
+      parameters:
+      - in: body
+        name: body
+        description: body for Verify OTP content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.VerifyActivationCodeDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/responsesDTOs.StringResponseDTO'
         "403":
           description: body is empty
   /auth/verify-otp:
@@ -590,6 +634,12 @@ definitions:
     properties:
       NewPassword:
         type: string
+  requestsDTOs.SendActivationCode:
+    title: SendActivationCode
+    type: object
+    properties:
+      MobileNumber:
+        type: string
   requestsDTOs.StringRequestDTO:
     title: StringRequestDTO
     type: object
@@ -610,6 +660,14 @@ definitions:
     type: object
     properties:
       Username:
+        type: string
+  requestsDTOs.VerifyActivationCodeDTO:
+    title: VerifyActivationCodeDTO
+    type: object
+    properties:
+      MobileNumber:
+        type: string
+      Password:
         type: string
   requestsDTOs.VerifyOtpDTO:
     title: VerifyOtpDTO
