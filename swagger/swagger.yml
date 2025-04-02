@@ -127,6 +127,33 @@ paths:
             $ref: '#/definitions/responsesDTOs.UserResponseDTO'
         "403":
           description: body is empty
+  /auth/reset-password-link/{id}:
+    put:
+      tags:
+      - auth
+      description: |-
+        Reset user password link
+        <br>
+      operationId: AuthenticationController.Reset Password Link
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Change password content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.ResetPasswordLink'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
   /auth/reset-password/{id}:
     put:
       tags:
@@ -633,6 +660,18 @@ definitions:
     type: object
     properties:
       NewPassword:
+        type: string
+  requestsDTOs.ResetPasswordLink:
+    title: ResetPasswordLink
+    type: object
+    properties:
+      Email:
+        type: string
+      Message:
+        type: string
+      Role:
+        type: string
+      Subject:
         type: string
   requestsDTOs.SendActivationCode:
     title: SendActivationCode

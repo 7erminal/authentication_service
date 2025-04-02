@@ -8,3 +8,10 @@ type ChangePassword struct {
 type ResetPassword struct {
 	NewPassword string
 }
+
+type ResetPasswordLink struct {
+	Email   string
+	Role    string
+	Message string
+	Subject string
+}

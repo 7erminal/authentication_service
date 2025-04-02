@@ -34,6 +34,7 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("ResetPassword", c.ResetPassword)
 	c.Mapping("SendActivationCode", c.SendActivationCode)
 	c.Mapping("VerifyActivationCode", c.VerifyActivationCode)
+	c.Mapping("ResetPasswordLink", c.ResetPasswordLink)
 }
 
 // Post ...
@@ -297,6 +298,56 @@ func (c *AuthenticationController) ResetPassword() {
 			var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
 			c.Data["json"] = resp
 		}
+
+	} else {
+		logs.Error(err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// Reset Password Link...
+// @Title Reset Password Link
+// @Description Reset user password link
+// @Param	id		path 	string	true		"The id you want to update"
+// @Param	body		body 	requestsDTOs.ResetPasswordLink	true		"body for Change password content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /reset-password-link/:id [put]
+func (c *AuthenticationController) ResetPasswordLink() {
+	idStr := c.Ctx.Input.Param(":id")
+	id, _ := strconv.ParseInt(idStr, 0, 64)
+
+	var v requestsDTOs.ResetPasswordLink
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.Subject)
+
+	if a, err := models.GetUsersById(id); err == nil {
+		// Compare the stored hashed password, with the hashed version of the password that was received
+
+		// hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+
+		// logs.Debug(hashedPassword)
+
+		go functions.SendEmailNew(a.Email, v.Subject, v.Message)
+
+		logs.Debug("Sending", v.Message)
+
+		// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully sent reset link", StatusDesc: "User password link sent"}
+		c.Data["json"] = resp
+		// if err := models.UpdateUsersById(a); err == nil {
+		// 	c.Ctx.Output.SetStatus(200)
+
+		// 	var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "User password has been changed successfully"}
+		// 	c.Data["json"] = resp
+		// } else {
+		// 	var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
+		// 	c.Data["json"] = resp
+		// }
 
 	} else {
 		logs.Error(err.Error())

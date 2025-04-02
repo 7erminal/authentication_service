@@ -30,3 +30,26 @@ func SendEmail(username string, otp string) {
 
 	}
 }
+
+func SendEmailNew(email string, subject_ string, message string) {
+	// Create app password in gmail to use here
+	auth := smtp.PlainAuth("", "bede.abbe@gmail.com", "psxglveajilrvisa", "smtp.gmail.com")
+
+	// Here we do it all: connect to our server, set up a message and send it
+
+	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	subject := "Subject:" + subject_
+	body := message
+
+	to := []string{email}
+
+	msg := []byte(subject + mime + body)
+
+	err := smtp.SendMail("smtp.gmail.com:587", auth, "bede.abbe@gmail.com", to, msg)
+
+	if err != nil {
+
+		logs.Debug(err)
+
+	}
+}
