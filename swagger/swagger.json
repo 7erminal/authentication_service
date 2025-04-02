@@ -938,6 +938,12 @@
                 "Email": {
                     "type": "string"
                 },
+                "Links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/requestsDTOs.string"
+                    }
+                },
                 "Message": {
                     "type": "string"
                 },
@@ -1009,6 +1015,10 @@
                     "type": "string"
                 }
             }
+        },
+        "requestsDTOs.string": {
+            "title": "string",
+            "type": "object"
         },
         "responsesDTOs.InviteDecodeResponseDTO": {
             "title": "InviteDecodeResponseDTO",

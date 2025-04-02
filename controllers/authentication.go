@@ -331,6 +331,15 @@ func (c *AuthenticationController) ResetPasswordLink() {
 
 		// logs.Debug(hashedPassword)
 
+		message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", a.FullName, -1)
+
+		for i, link := range v.Links {
+			iStr := strconv.Itoa(i)
+			placeholder := "[LINK_" + iStr + "_ID]"
+			formattedLink := *link
+			message_ = strings.Replace(message_, placeholder, formattedLink, -1)
+		}
+
 		go functions.SendEmailNew(a.Email, v.Subject, v.Message)
 
 		logs.Debug("Sending", v.Message)

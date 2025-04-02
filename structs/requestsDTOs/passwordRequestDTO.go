@@ -13,4 +13,5 @@ type ResetPasswordLink struct {
 	Email   string
 	Message string
 	Subject string
+	Links   []*string
 }
