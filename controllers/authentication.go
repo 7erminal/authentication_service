@@ -331,18 +331,42 @@ func (c *AuthenticationController) ResetPasswordLink() {
 
 		// logs.Debug(hashedPassword)
 
-		message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", a.FullName, -1)
+		rawString := v.Email + "___" + a.Role.Role
 
-		for i, link := range v.Links {
-			iStr := strconv.Itoa(i)
-			placeholder := "[LINK_" + iStr + "_ID]"
-			formattedLink := *link
-			message_ = strings.Replace(message_, placeholder, formattedLink, -1)
+		// ikey, _ := functions.GenerateKey()
+
+		if token, nonce, err := functions.GetAESEncrypted(rawString); err == nil {
+
+			logs.Info("Token generated is ", token)
+			logs.Info("Nonce generated is ", nonce)
+			// logs.Info("Key generated is ", string(ikey[:]))
+
+			var userToken models.UserTokens = models.UserTokens{Token: token, Nonce: nonce, ExpiryDate: time.Now().Add(4 * time.Hour), Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: 1, ModifiedBy: 1}
+
+			_, err := models.AddUserTokens(&userToken)
+
+			if err != nil {
+				return
+			}
+
+			message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", a.FullName, -1)
+
+			for i, link := range v.Links {
+				iStr := strconv.Itoa(i)
+				placeholder := "[LINK_" + iStr + "_ID]"
+				formattedLink := *link + token
+				message_ = strings.Replace(message_, placeholder, formattedLink, -1)
+			}
+
+			go functions.SendEmailNew(a.Email, v.Subject, v.Message)
+
+			logs.Debug("Sending", v.Message)
+
+		} else {
+			logs.Error("Error validating token...", err.Error())
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "", StatusDesc: "Error validating token"}
+			c.Data["json"] = resp
 		}
-
-		go functions.SendEmailNew(a.Email, v.Subject, v.Message)
-
-		logs.Debug("Sending", v.Message)
 
 		// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
 
@@ -704,7 +728,7 @@ func (c *AuthenticationController) GenerateInviteToken() {
 	var q requestsDTOs.EncryptInviteRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Info("About to generate token ", q.Email)
+	logs.Info("About to generate token ", q.Email, " and ", q.Role)
 	rawString := q.Email + "___" + q.Role
 
 	// ikey, _ := functions.GenerateKey()
