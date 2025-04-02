@@ -669,8 +669,6 @@ definitions:
         type: string
       Message:
         type: string
-      Role:
-        type: string
       Subject:
         type: string
   requestsDTOs.SendActivationCode:

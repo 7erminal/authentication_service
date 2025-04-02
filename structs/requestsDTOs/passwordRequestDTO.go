@@ -11,7 +11,6 @@ type ResetPassword struct {
 
 type ResetPasswordLink struct {
 	Email   string
-	Role    string
 	Message string
 	Subject string
 }
