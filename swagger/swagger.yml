@@ -127,8 +127,8 @@ paths:
             $ref: '#/definitions/responsesDTOs.UserResponseDTO'
         "403":
           description: body is empty
-  /auth/reset-password-link/{id}:
-    put:
+  /auth/reset-password-link:
+    post:
       tags:
       - auth
       description: |-
@@ -136,11 +136,6 @@ paths:
         <br>
       operationId: AuthenticationController.Reset Password Link
       parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
       - in: body
         name: body
         description: body for Change password content
@@ -267,6 +262,28 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/responsesDTOs.InviteDecodeResponseDTO'
+        "403":
+          description: body is empty
+  /auth/token/verify:
+    post:
+      tags:
+      - auth
+      description: |-
+        Verify token
+        <br>
+      operationId: AuthenticationController.Verify token
+      parameters:
+      - in: body
+        name: body
+        description: body for Authentication content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.StringRequestDTO'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/responsesDTOs.StringResponseDTO'
         "403":
           description: body is empty
   /auth/verify-activation-code:

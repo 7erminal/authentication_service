@@ -65,13 +65,13 @@ func GetUsersByUsername(username string) (v *Users, err error) {
 	o := orm.NewOrm()
 	v = &Users{Email: username}
 	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
-		logs.Debug("Got not the email")
+		logs.Debug("Got the email")
 		return v, nil
 	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
-		logs.Debug("Got not the Phone number")
+		logs.Debug("Got the Phone number")
 		return v, nil
 	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
-		logs.Debug("Got not the Username")
+		logs.Debug("Got the Username")
 		return v, nil
 	}
 

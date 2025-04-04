@@ -55,8 +55,8 @@ func init() {
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
             Method: "ResetPasswordLink",
-            Router: `/reset-password-link/:id`,
-            AllowHTTPMethods: []string{"put"},
+            Router: `/reset-password-link`,
+            AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})
@@ -101,6 +101,15 @@ func init() {
         beego.ControllerComments{
             Method: "VerifyInviteToken",
             Router: `/token/invite/verify`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
+            Method: "VerifyToken",
+            Router: `/token/verify`,
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,

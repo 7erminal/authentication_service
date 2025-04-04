@@ -177,21 +177,14 @@
                 }
             }
         },
-        "/auth/reset-password-link/{id}": {
-            "put": {
+        "/auth/reset-password-link": {
+            "post": {
                 "tags": [
                     "auth"
                 ],
                 "description": "Reset user password link\n\u003cbr\u003e",
                 "operationId": "AuthenticationController.Reset Password Link",
                 "parameters": [
-                    {
-                        "in": "path",
-                        "name": "id",
-                        "description": "The id you want to update",
-                        "required": true,
-                        "type": "string"
-                    },
                     {
                         "in": "body",
                         "name": "body",
@@ -369,6 +362,37 @@
                         "description": "",
                         "schema": {
                             "$ref": "#/definitions/responsesDTOs.InviteDecodeResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/token/verify": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Verify token\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Verify token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.StringRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
                         }
                     },
                     "403": {

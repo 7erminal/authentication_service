@@ -45,6 +45,17 @@ func GetUserTokensById(id int64) (v *UserTokens, err error) {
 	return nil, err
 }
 
+// GetUserTokensById retrieves UserTokens by Id. Returns error if
+// Id doesn't exist
+func GetUserTokensByToken(token string) (v *UserTokens, err error) {
+	o := orm.NewOrm()
+	v = &UserTokens{}
+	if err = o.QueryTable(new(UserTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
+		return v, nil
+	}
+	return nil, err
+}
+
 // GetAllUserTokens retrieves all UserTokens matches certain condition. Returns empty list if
 // no records exist
 func GetAllUserTokens(query map[string]string, fields []string, sortby []string, order []string,

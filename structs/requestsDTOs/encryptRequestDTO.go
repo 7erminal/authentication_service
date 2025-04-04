@@ -14,3 +14,8 @@ type DecryptRequestDTO struct {
 type TokenDTO struct {
 	Token string
 }
+
+type VerifyTokenReq struct {
+	Token string
+	Email string
+}

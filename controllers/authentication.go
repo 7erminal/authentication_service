@@ -35,6 +35,8 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("SendActivationCode", c.SendActivationCode)
 	c.Mapping("VerifyActivationCode", c.VerifyActivationCode)
 	c.Mapping("ResetPasswordLink", c.ResetPasswordLink)
+	c.Mapping("Logout", c.Logout)
+	c.Mapping("VerifyToken", c.VerifyToken)
 }
 
 // Post ...
@@ -272,6 +274,8 @@ func (c *AuthenticationController) ResetPassword() {
 
 	logs.Info("Received ", v.NewPassword)
 
+	logs.Info("About to decrypt token")
+
 	if a, err := models.GetUsersById(id); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
@@ -310,26 +314,23 @@ func (c *AuthenticationController) ResetPassword() {
 // Reset Password Link...
 // @Title Reset Password Link
 // @Description Reset user password link
-// @Param	id		path 	string	true		"The id you want to update"
 // @Param	body		body 	requestsDTOs.ResetPasswordLink	true		"body for Change password content"
 // @Success 201 {object} models.UserResponseDTO
 // @Failure 403 body is empty
-// @router /reset-password-link/:id [put]
+// @router /reset-password-link [post]
 func (c *AuthenticationController) ResetPasswordLink() {
-	idStr := c.Ctx.Input.Param(":id")
-	id, _ := strconv.ParseInt(idStr, 0, 64)
-
 	var v requestsDTOs.ResetPasswordLink
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Subject)
+	logs.Info("Received ", v.Email)
 
-	if a, err := models.GetUsersById(id); err == nil {
+	if a, err := models.GetUsersByUsername(v.Email); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
 		// hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
 		// logs.Debug(hashedPassword)
+		fmt.Printf("Value of v: %+v\n", a)
 
 		rawString := v.Email + "___" + a.Role.Role
 
@@ -712,6 +713,61 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 	} else {
 		logs.Error("Error validating token...", err.Error())
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error validating token"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// VerifyToken ...
+// @Title Verify token
+// @Description Verify token
+// @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
+// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Failure 403 body is empty
+// @router /token/verify [post]
+func (c *AuthenticationController) VerifyToken() {
+	var q requestsDTOs.VerifyTokenReq
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	logs.Info("About to verify token ", q.Token)
+
+	statusCode := 608
+	message := "Unable to verify token"
+
+	if tokenObj, err := models.GetUserTokensByToken(q.Token); err == nil {
+		if plainText, err := functions.GetAESDecrypted(tokenObj.Token, tokenObj.Nonce); err == nil {
+			logs.Info("Decrypted token is ", plainText)
+
+			splitText := strings.Split(plainText, "__")
+
+			email := ""
+			if len(splitText) > 1 {
+				email = splitText[0]
+			} else {
+				email = splitText[0]
+			}
+
+			if user, err := models.GetUsersByUsername(email); err == nil {
+				statusCode = 200
+				message = "Successfully validated"
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: user, StatusDesc: message}
+				c.Data["json"] = resp
+			} else {
+				statusCode = 708
+				message = "user not found"
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
+				c.Data["json"] = resp
+			}
+		} else {
+			logs.Error("Error validating token...", err.Error())
+			statusCode = 708
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error("Error validating token...", err.Error())
+		statusCode = 703
+		var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()
