@@ -350,18 +350,25 @@ func (c *AuthenticationController) ResetPasswordLink() {
 				return
 			}
 
+			logs.Debug("Message is ", v.Message)
+			logs.Debug("Subject is ", v.Subject)
+			logs.Debug("Links are ", v.Links)
+			logs.Debug("Sender is ", a.FullName)
+
 			message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", a.FullName, -1)
+			logs.Info("Message with name is ", message_)
 
 			for i, link := range v.Links {
 				iStr := strconv.Itoa(i)
 				placeholder := "[LINK_" + iStr + "_ID]"
 				formattedLink := *link + token
 				message_ = strings.Replace(message_, placeholder, formattedLink, -1)
+				logs.Info("Message with link is ", message_)
 			}
 
-			go functions.SendEmailNew(a.Email, v.Subject, v.Message)
+			logs.Debug("Sending", message_)
 
-			logs.Debug("Sending", v.Message)
+			go functions.SendEmailNew(a.Email, v.Subject, message_)
 
 		} else {
 			logs.Error("Error validating token...", err.Error())
