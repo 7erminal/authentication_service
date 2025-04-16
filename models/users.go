@@ -63,15 +63,32 @@ func GetUsersById(id int64) (v *Users, err error) {
 // Id doesn't exist
 func GetUsersByUsername(username string) (v *Users, err error) {
 	o := orm.NewOrm()
-	v = &Users{Email: username}
-	if err = o.QueryTable(new(Users)).Filter("Email", username).RelatedSel().One(v); err == nil {
+	v = &Users{}
+	qs := o.QueryTable(new(Users))
+
+	if err = qs.Filter("Email", username).RelatedSel().One(v); err == nil {
+		logs.Debug("Loaded user details ", v.UserDetails)
+		_, err := o.LoadRelated(v, "UserDetails")
+		if err != nil {
+			logs.Error("Error loading user details ", err)
+		} else {
+			logs.Debug("Loaded user details ", v.UserDetails)
+			_, err := o.LoadRelated(v.UserDetails, "Shop")
+			if err != nil {
+				logs.Error("Error loading user details ", err)
+			} else {
+				logs.Debug("Loaded user details ", v.UserDetails)
+			}
+		}
 		logs.Debug("Got the email")
 		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
+	} else if err = qs.Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
 		logs.Debug("Got the Phone number")
+		// o.LoadRelated(&v.UserDetails, "Shop")
 		return v, nil
-	} else if err = o.QueryTable(new(Users)).Filter("Username", username).RelatedSel().One(v); err == nil {
+	} else if err = qs.Filter("Username", username).RelatedSel().One(v); err == nil {
 		logs.Debug("Got the Username")
+		// o.LoadRelated(&v.UserDetails, "Shop")
 		return v, nil
 	}
 

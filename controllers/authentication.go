@@ -132,6 +132,7 @@ func (c *AuthenticationController) LoginToken() {
 
 	if a, err := models.GetUsersByUsername(v.Username); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
+		logs.Info("User role is ", a.Role.Role)
 		if a.Active == 1 {
 			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
 				// If the two passwords don't match, return a 401 status
@@ -672,6 +673,7 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 	if token, err := functions.CheckTokenExpiry(q.Value); err == nil {
 		if token.IsValid {
 			logs.Info("Token is still valid. User is ", token.User)
+			logs.Info("User role is ", token.User.Role.Role)
 			// cust, err := models.GetCustomersByUser(token.User)
 
 			// if err != nil {
