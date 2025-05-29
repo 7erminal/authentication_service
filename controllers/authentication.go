@@ -356,7 +356,9 @@ func (c *AuthenticationController) ResetPasswordLink() {
 			logs.Debug("Links are ", v.Links)
 			logs.Debug("Sender is ", a.FullName)
 
-			message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", a.FullName, -1)
+			namePlaceHolder := strings.Split(a.FullName, " | ")
+			name := strings.Join(namePlaceHolder, " ")
+			message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", name, -1)
 			logs.Info("Message with name is ", message_)
 
 			for i, link := range v.Links {

@@ -8,7 +8,7 @@ import (
 
 func SendEmail(username string, otp string) {
 	// create app password in gmail to use here. This is different from your login password. This email will send emails.
-	auth := smtp.PlainAuth("", "bede.abbe@solisfinance.com", "dqcmwcuyvfjwcuyd", "smtp.gmail.com")
+	auth := smtp.PlainAuth("", "info@amcrentalsgh.com", "kvfb hrjt qmyr lrzm", "smtp.gmail.com")
 
 	// Here we do it all: connect to our server, set up a message and send it
 
@@ -22,7 +22,7 @@ func SendEmail(username string, otp string) {
 
 		"Your one time pin is " + otp + ".\r\nThis code will expire in 5 mins.\r\n")
 
-	err := smtp.SendMail("smtp.gmail.com:587", auth, "bede.abbe@solisfinance.com", to, msg)
+	err := smtp.SendMail("smtp.gmail.com:587", auth, "info@amcrentalsgh.com", to, msg)
 
 	if err != nil {
 
@@ -33,7 +33,7 @@ func SendEmail(username string, otp string) {
 
 func SendEmailNew(email string, subject_ string, message string) {
 	// Create app password in gmail to use here
-	auth := smtp.PlainAuth("", "bede.abbe@gmail.com", "psxglveajilrvisa", "smtp.gmail.com")
+	auth := smtp.PlainAuth("", "info@amcrentalsgh.com", "kvfb hrjt qmyr lrzm", "smtp.gmail.com")
 
 	// Here we do it all: connect to our server, set up a message and send it
 
@@ -45,7 +45,7 @@ func SendEmailNew(email string, subject_ string, message string) {
 
 	msg := []byte(subject + mime + body)
 
-	err := smtp.SendMail("smtp.gmail.com:587", auth, "bede.abbe@gmail.com", to, msg)
+	err := smtp.SendMail("smtp.gmail.com:587", auth, "info@amcrentalsgh.com", to, msg)
 
 	if err != nil {
 
