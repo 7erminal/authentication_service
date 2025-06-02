@@ -33,7 +33,7 @@ func SendEmail(username string, otp string) {
 
 func SendEmailNew(email string, subject_ string, message string) {
 	// Create app password in gmail to use here
-	auth := smtp.PlainAuth("", "info@amcrentalsgh.com", "kvfb hrjt qmyr lrzm", "smtp.gmail.com")
+	auth := smtp.PlainAuth("", "amcflowposh@gmail.com", "@AMCFlowpos25", "smtp.gmail.com")
 
 	// Here we do it all: connect to our server, set up a message and send it
 
