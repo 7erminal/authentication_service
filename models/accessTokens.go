@@ -52,15 +52,15 @@ func GetAccessTokensByToken(token string) (v *AccessTokens, err error) {
 	o := orm.NewOrm()
 	v = &AccessTokens{Token: token}
 	if err = o.QueryTable(new(AccessTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
-		_, err = o.LoadRelated(&v.User, "UserDetails")
-		if err != nil {
-			logs.Error("Error loading related User details: ", err)
-		} else {
-			_, err = o.LoadRelated(&v.User.UserDetails.Branch, "Branch")
-			if err != nil {
-				logs.Error("Error loading related User details branch: ", err)
-			}
-		}
+		// _, err = o.LoadRelated(&v, "UserDetails")
+		// if err != nil {
+		// 	logs.Error("Error loading related User details: ", err)
+		// } else {
+		// 	_, err = o.LoadRelated(&v.User.UserDetails.Branch, "Branch")
+		// 	if err != nil {
+		// 		logs.Error("Error loading related User details branch: ", err)
+		// 	}
+		// }
 		return v, nil
 	}
 	return nil, err
