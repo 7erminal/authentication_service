@@ -53,6 +53,99 @@
                 }
             }
         },
+        "/auth/customer-token/check": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Check Token Expiry\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Check Customer token expiry",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.StringRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/customer-token/verify": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Verify Customer token\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Verify Customer token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.StringRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/expire-customer-token": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Expire Customer Token\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Expire Customer Token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.TokenDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/auth/log-out": {
             "post": {
                 "tags": [
@@ -393,6 +486,37 @@
                         "description": "",
                         "schema": {
                             "$ref": "#/definitions/responsesDTOs.StringResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/validate-customer-credentials/token": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Validate Customer Credentials\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Validate Customer Credentials",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AuthenticationDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
                         }
                     },
                     "403": {

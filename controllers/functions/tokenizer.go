@@ -94,6 +94,42 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 	}
 }
 
+func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenResponseDTO, error) {
+
+	if token, err := VerifyToken(token_); err == nil {
+		if token {
+			logs.Info("Valid token...")
+			if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
+				logs.Info("Token fetched is ", tokenObj.Token)
+				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
+				logs.Info("Time now is ", time.Now())
+
+				if tokenObj.ExpiresAt.After(time.Now()) {
+					logs.Info("Token is valid")
+					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: tokenObj.Customer}
+					return resp, nil
+				} else {
+					logs.Info("Token has expired")
+					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
+					return resp, nil
+				}
+			} else {
+				logs.Error("Token does not exist...", err.Error())
+				resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
+				return resp, err
+			}
+		} else {
+			logs.Error("Token is invalid...")
+			resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
+			return resp, nil
+		}
+	} else {
+		logs.Error("Error validating token...", err.Error())
+		resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
+		return resp, err
+	}
+}
+
 // var (
 // 	// We're using a 32 byte long secret key.
 // 	// This is probably something you generate first

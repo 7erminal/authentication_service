@@ -37,9 +37,12 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("ResetPasswordLink", c.ResetPasswordLink)
 	c.Mapping("Logout", c.Logout)
 	c.Mapping("VerifyToken", c.VerifyToken)
+	c.Mapping("ValidateCustomerCredentialsToken", c.ValidateCustomerCredentialsToken)
+	c.Mapping("ExpireCustomerToken", c.ExpireCustomerToken)
+	c.Mapping("CheckCustomerTokenExpiry", c.CheckCustomerTokenExpiry)
 }
 
-// Post ...
+// Login ...
 // @Title Login
 // @Description Login User
 // @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
@@ -117,7 +120,7 @@ func (c *AuthenticationController) Login() {
 	c.ServeJSON()
 }
 
-// Post ...
+// LoginToken ...
 // @Title Login User
 // @Description Login
 // @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
@@ -192,6 +195,86 @@ func (c *AuthenticationController) LoginToken() {
 	} else {
 		logs.Error(err.Error())
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Unidentified user"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// ValidateCustomerCredentials ...
+// @Title Validate Customer Credentials
+// @Description Validate Customer Credentials
+// @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /validate-customer-credentials/token [post]
+func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
+	var v models.AuthenticationDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.Password, v.Username)
+
+	if a, err := models.GetCustomer_credentialsByCustomerUsername(v.Username); err == nil {
+		// Compare the stored hashed password, with the hashed version of the password that was received
+
+		if a.Active == 1 {
+			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
+				// If the two passwords don't match, return a 401 status
+				c.Data["json"] = err.Error()
+
+				logs.Error(err.Error())
+
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Incorrect password"}
+				c.Data["json"] = resp
+
+			} else {
+				c.Ctx.Output.SetStatus(200)
+
+				token, expiryTime, err := functions.CreateToken(v.Username)
+
+				logs.Info("Token created is ", token)
+
+				if err != nil {
+					logs.Error("Error updating token. ", err.Error())
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+					c.Data["json"] = resp
+				} else {
+					updateToken := models.Customer_access_tokens{Customer: a.Customer, Revoked: true}
+					if err := models.UpdateCustomer_access_tokensByCustomer(&updateToken); err != nil {
+						t := time.Unix(expiryTime, 0)
+						tokenObj := models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+						if _, err := models.AddCustomer_access_tokens(&tokenObj); err == nil {
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "Customer has been authenticated"}
+							c.Data["json"] = resp
+						} else {
+							logs.Error("Error adding token. ", err.Error())
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+							c.Data["json"] = resp
+						}
+					} else {
+						t := time.Unix(expiryTime, 0)
+						tokenObj := models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+						if _, err := models.AddCustomer_access_tokens(&tokenObj); err == nil {
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
+							c.Data["json"] = resp
+						} else {
+							logs.Error("Error adding token. ", err.Error())
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+							c.Data["json"] = resp
+						}
+						// logs.Error("Error updating token. ")
+						// var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+						// c.Data["json"] = resp
+					}
+				}
+			}
+		} else {
+			logs.Error("Customer is not active ", a.Active)
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 607, Value: "", StatusDesc: "Inactive Customer"}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error(err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified customer"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()
@@ -659,7 +742,7 @@ func (c *AuthenticationController) VerifyActivationCode() {
 	c.ServeJSON()
 }
 
-// Post ...
+// CheckTokenExpiry ...
 // @Title Check token expiry
 // @Description Check Token Expiry
 // @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
@@ -746,6 +829,94 @@ func (c *AuthenticationController) VerifyToken() {
 	message := "Unable to verify token"
 
 	if tokenObj, err := models.GetUserTokensByToken(q.Token); err == nil {
+		logs.Info("Token object is ", tokenObj)
+		if plainText, err := functions.GetAESDecrypted(tokenObj.Token, tokenObj.Nonce); err == nil {
+			logs.Info("Decrypted token is ", plainText)
+
+			splitText := strings.Split(plainText, "__")
+
+			email := ""
+			if len(splitText) > 1 {
+				email = splitText[0]
+			} else {
+				email = splitText[0]
+			}
+
+			if user, err := models.GetUsersByUsername(email); err == nil {
+				statusCode = 200
+				message = "Successfully validated"
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: user, StatusDesc: message}
+				c.Data["json"] = resp
+			} else {
+				statusCode = 708
+				message = "user not found"
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
+				c.Data["json"] = resp
+			}
+		} else {
+			logs.Error("Error validating token...", err.Error())
+			statusCode = 708
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error("Error validating token...", err.Error())
+		statusCode = 703
+		var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// CheckCustomerTokenExpiry ...
+// @Title Check Customer token expiry
+// @Description Check Token Expiry
+// @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
+// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Failure 403 body is empty
+// @router /customer-token/check [post]
+func (c *AuthenticationController) CheckCustomerTokenExpiry() {
+	var q requestsDTOs.StringRequestDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	logs.Info("About to verify token ", q.Value)
+
+	if token, err := functions.CheckCustomerTokenExpiry(q.Value); err == nil {
+		if token.IsValid {
+			logs.Info("Token is still valid. Customer is ", token.Customer)
+
+			var resp = responsesDTOs.CustomerResponseDTO{StatusCode: 200, Result: token.Customer, StatusDesc: "Token is valid"}
+			c.Data["json"] = resp
+		} else {
+			var resp = responsesDTOs.CustomerResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Invalid token"}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error("Error validating token...", err.Error())
+		var resp = responsesDTOs.CustomerResponseDTO{StatusCode: 703, Result: nil, StatusDesc: "Error validating token"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// VerifyCustomerToken ...
+// @Title Verify Customer token
+// @Description Verify Customer token
+// @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
+// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Failure 403 body is empty
+// @router /customer-token/verify [post]
+func (c *AuthenticationController) VerifyCustomerToken() {
+	var q requestsDTOs.VerifyTokenReq
+	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
+
+	logs.Info("About to verify token ", q.Token)
+
+	statusCode := 608
+	message := "Unable to verify token"
+
+	if tokenObj, err := models.GetUserTokensByToken(q.Token); err == nil {
+		logs.Info("Token object is ", tokenObj)
 		if plainText, err := functions.GetAESDecrypted(tokenObj.Token, tokenObj.Nonce); err == nil {
 			logs.Info("Decrypted token is ", plainText)
 
@@ -901,6 +1072,36 @@ func (c *AuthenticationController) Logout() {
 			c.Ctx.Output.SetStatus(200)
 
 			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "", StatusDesc: "User log out complete"}
+			c.Data["json"] = resp
+		}
+	} else {
+		logs.Error(err.Error())
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Invalid request"}
+		c.Data["json"] = resp
+	}
+	c.ServeJSON()
+}
+
+// Log Customer Out ...
+// @Title Expire Customer Token
+// @Description Expire Customer Token
+// @Param	body		body 	requestsDTOs.TokenDTO	true		"body for Authentication content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /expire-customer-token [post]
+func (c *AuthenticationController) ExpireCustomerToken() {
+	var v requestsDTOs.TokenDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.Token)
+
+	if a, err := models.GetCustomer_access_tokensByToken(v.Token); err == nil {
+		a.ExpiresAt = time.Now()
+		a.Revoked = true
+		if err := models.UpdateCustomer_access_tokensById(a); err == nil {
+			c.Ctx.Output.SetStatus(200)
+
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "", StatusDesc: "Customer expired"}
 			c.Data["json"] = resp
 		}
 	} else {

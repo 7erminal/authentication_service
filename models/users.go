@@ -36,6 +36,10 @@ type Users struct {
 	ModifiedBy    int
 }
 
+func (t *Users) TableName() string {
+	return "auth_users"
+}
+
 func init() {
 	orm.RegisterModel(new(Users))
 }

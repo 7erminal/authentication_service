@@ -40,3 +40,14 @@ type UserTokenResponseDTO struct {
 	IsValid bool
 	User    *models.Users
 }
+
+type CustomerTokenResponseDTO struct {
+	IsValid  bool
+	Customer *models.Customers
+}
+
+type CustomerResponseDTO struct {
+	StatusCode int
+	Result     *models.Customers
+	StatusDesc string
+}
