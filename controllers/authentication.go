@@ -213,7 +213,9 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 
 	logs.Info("Received ", v.Password, v.Username)
 
-	if a, err := models.GetCustomer_credentialsByCustomerUsername(v.Username); err == nil {
+	trimUsername := strings.TrimSpace(v.Username)
+
+	if a, err := models.GetCustomer_credentialsByCustomerUsername(trimUsername); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
 		if a.Active == 1 {
@@ -884,6 +886,7 @@ func (c *AuthenticationController) CheckCustomerTokenExpiry() {
 	if token, err := functions.CheckCustomerTokenExpiry(q.Value); err == nil {
 		if token.IsValid {
 			logs.Info("Token is still valid. Customer is ", token.Customer)
+			logs.Info("Customer name is ", token.Customer.FullName)
 
 			var resp = responsesDTOs.CustomerResponseDTO{StatusCode: 200, Result: token.Customer, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp

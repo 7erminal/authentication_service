@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 type Customer_credentials struct {
-	Id           int64      `orm:"auto; column(customer_credential_id)"`
+	Id           int64      `orm:"auto;column(customer_credential_id)"`
 	Customer     *Customers `orm:"rel(fk)"`
 	Username     string     `orm:"size(255)"`
 	Password     string     `orm:"size(255)"`
@@ -21,6 +22,10 @@ type Customer_credentials struct {
 	CreatedBy    int
 	ModifiedBy   int
 	Active       int
+}
+
+func (t *Customer_credentials) TableName() string {
+	return "customer_credentials"
 }
 
 func init() {
@@ -40,7 +45,7 @@ func AddCustomer_credentials(m *Customer_credentials) (id int64, err error) {
 func GetCustomer_credentialsById(id int64) (v *Customer_credentials, err error) {
 	o := orm.NewOrm()
 	v = &Customer_credentials{Id: id}
-	if err = o.QueryTable(new(Customer_credentials)).Filter("Id", id).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(Customer_credentials)).Filter("customer_credential_id", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -60,8 +65,9 @@ func GetCustomer_credentialsByCustomerId(id Customers) (v *Customer_credentials,
 // GetCustomer_credentialsByCustomerId retrieves Customer_credentials by Id. Returns error if
 // Id doesn't exist
 func GetCustomer_credentialsByCustomerUsername(username string) (v *Customer_credentials, err error) {
+	logs.Info("Fetching customer credentials by username:", username)
 	o := orm.NewOrm()
-	v = &Customer_credentials{Username: username}
+	v = &Customer_credentials{}
 	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).RelatedSel().One(v); err == nil {
 		return v, nil
 	}

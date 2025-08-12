@@ -11,7 +11,7 @@ import (
 )
 
 type Customer_access_tokens struct {
-	Id           int64      `orm:"auto"`
+	Id           int64      `orm:"auto;column(customer_access_token_id)"`
 	Token        string     `orm:"size(255)"`
 	Customer     *Customers `orm:"rel(fk)"`
 	DateCreated  time.Time  `orm:"type(datetime)"`

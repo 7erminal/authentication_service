@@ -103,6 +103,7 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 				logs.Info("Token fetched is ", tokenObj.Token)
 				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
 				logs.Info("Time now is ", time.Now())
+				logs.Info("Customer for token is ", tokenObj.Customer)
 
 				if tokenObj.ExpiresAt.After(time.Now()) {
 					logs.Info("Token is valid")
