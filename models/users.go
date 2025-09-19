@@ -37,7 +37,7 @@ type Users struct {
 }
 
 func (t *Users) TableName() string {
-	return "auth_users"
+	return "users"
 }
 
 func init() {
