@@ -933,6 +933,8 @@ func (c *AuthenticationController) VerifyCustomerToken() {
 			}
 
 			if user, err := models.GetUsersByUsername(email); err == nil {
+				logs.Info("User found is ", user)
+				logs.Info("User was created on ", user.DateCreated)
 				statusCode = 200
 				message = "Successfully validated"
 				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: user, StatusDesc: message}
