@@ -53,6 +53,8 @@ func GetCustomer_access_tokensByToken(token string) (v *Customer_access_tokens, 
 	v = &Customer_access_tokens{Token: token}
 	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
 		logs.Info("Fetched token is ", v.Token)
+		logs.Info("Fetched token belongs to customer ", v.Customer.FullName)
+		logs.Info("Whose date of onboarding is ", v.Customer.DateCreated)
 		return v, nil
 	}
 	return nil, err
