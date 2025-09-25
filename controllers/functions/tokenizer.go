@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -103,7 +104,12 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 				logs.Info("Token fetched is ", tokenObj.Token)
 				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
 				logs.Info("Time now is ", time.Now())
-				logs.Info("Customer for token is ", tokenObj.Customer)
+				customerJson, err := json.Marshal(tokenObj.Customer)
+				if err != nil {
+					logs.Error("Error marshalling customer to JSON: ", err.Error())
+				} else {
+					logs.Info("Customer for token is ", string(customerJson))
+				}
 
 				if tokenObj.ExpiresAt.After(time.Now()) {
 					logs.Info("Token is valid")

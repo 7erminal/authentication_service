@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 type Customer_access_tokens struct {
@@ -51,6 +52,7 @@ func GetCustomer_access_tokensByToken(token string) (v *Customer_access_tokens, 
 	o := orm.NewOrm()
 	v = &Customer_access_tokens{Token: token}
 	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
+		logs.Info("Fetched token is ", v.Token)
 		return v, nil
 	}
 	return nil, err
