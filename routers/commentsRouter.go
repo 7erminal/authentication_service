@@ -9,6 +9,15 @@ func init() {
 
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
+            Method: "ChangeCustomerPassword",
+            Router: `/change-customer-password/:id`,
+            AllowHTTPMethods: []string{"put"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
             Method: "ChangePassword",
             Router: `/change-password/:id`,
             AllowHTTPMethods: []string{"put"},
@@ -75,6 +84,15 @@ func init() {
             Method: "ResendOTP",
             Router: `/resend-otp`,
             AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
+            Method: "ResetCustomerPassword",
+            Router: `/reset-customer-password/:id`,
+            AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})
