@@ -416,7 +416,11 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 
 	logs.Info("Received ", v.NewPassword)
 
-	logs.Info("About to decrypt token")
+	reqBody := c.Ctx.Input.RequestBody
+	// reqHeaders := c.Ctx.Request.Header
+
+	logs.Info("Request is " + string(reqBody))
+	// logs.Info("Headers are "+string(reqHeaders[][]))
 
 	if a, err := models.GetCustomersById(id); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
