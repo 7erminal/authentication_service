@@ -422,12 +422,15 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
 		if custCred, err := models.GetCustomer_credentialsByCustomerId(*a); err == nil {
+			logs.Info("Customer credentials found")
 			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
 			if errr == nil {
+				logs.Info("Successfully encrypted password")
 				logs.Debug(hashedPassword)
 
 				custCred.Password = string(hashedPassword)
+				logs.Info("Password changed")
 
 				logs.Debug("Sending", v.NewPassword)
 
@@ -437,6 +440,7 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 			}
 
 			if err := models.UpdateCustomer_credentialsById(custCred); err == nil {
+				logs.Info("Password change updated")
 				c.Ctx.Output.SetStatus(200)
 
 				var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "Customer password has been changed successfully"}
@@ -452,6 +456,7 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 		}
 
 	} else {
+		logs.Error("Customer not found")
 		logs.Error(err.Error())
 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified Customer"}
 		c.Data["json"] = resp
