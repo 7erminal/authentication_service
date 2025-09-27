@@ -6,7 +6,7 @@ type ChangePassword struct {
 }
 
 type ResetPassword struct {
-	NewPassword string
+	NewPassword string `json:"NewPassword"`
 }
 
 type ResetPasswordLink struct {
