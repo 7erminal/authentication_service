@@ -32,7 +32,7 @@ jobs:
           set -e  # Exit on any error
           cd /usr/app/maku_foods_auth_service
           git stash
-          git pull origin main  # Use branch explicitly
+          git pull origin makufoods  # Use branch explicitly
           go build -o maku-foods-auth-service
           pm2 restart maku-foods-auth-service || pm2 start maku-foods-auth-service --name maku-foods-auth-service
         EOF 
