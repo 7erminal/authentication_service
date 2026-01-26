@@ -34,10 +34,10 @@ jobs:
 
         ssh -o StrictHostKeyChecking=no root@185.211.5.90 << 'EOF'
           set -e
-          cd /usr/app/mobile-application/authentication_service
+          cd /usr/app/mobile-application/authentication-service
           git stash
           git pull origin msysmobilizer
-          go build -o authentication_service
-          pm2 restart authentication_service || \
-          pm2 start authentication_service --name authentication_service
+          go build -o authentication-service
+          pm2 restart authentication-service || \
+          pm2 start authentication-service --name authentication-service
         EOF
