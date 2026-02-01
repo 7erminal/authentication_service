@@ -18,19 +18,19 @@ type Customers struct {
 	Email                string                `orm:"column(email);size(255);null"`
 	PhoneNumber          string                `orm:"column(phone_number);size(255);null"`
 	Location             string                `orm:"column(location);size(255);null"`
-	IdentificationType   *Identification_types `orm:"rel(fk);column(identification_type_id);omitempty;null"`
+	IdentificationType   *Identification_types `orm:"rel(fk);column(identification_type_id);null"`
 	IdentificationNumber string                `orm:"column(identification_number);size(255);null"`
-	Branch               *Branches             `orm:"rel(fk);column(branch);omitempty;null"`
-	Shop                 *Shops                `orm:"rel(fk);omitempty;null"`
-	CustomerCategory     *Customer_categories  `orm:"rel(fk);omitempty;null"`
-	Nickname             string                `orm:"size(100);omitempty;null"`
+	Branch               *Branches             `orm:"rel(fk);column(branch);null"`
+	Shop                 *Shops                `orm:"rel(fk);null"`
+	CustomerCategory     *Customer_categories  `orm:"rel(fk);null"`
+	Nickname             string                `orm:"size(100);null"`
 	Dob                  time.Time             `orm:"column(dob);type(datetime)"`
 	DateCreated          time.Time             `orm:"type(datetime)"`
 	DateModified         time.Time             `orm:"type(datetime)"`
 	CreatedBy            int
 	ModifiedBy           int
 	Active               int
-	User                 *Users                         `orm:"rel(fk);omitempty;null"`
+	User                 *Users                         `orm:"rel(fk);null"`
 	LastTxnDate          time.Time                      `orm:"type(datetime)"`
 	EmergencyContacts    []*Customer_emergency_contacts `orm:"reverse(many);null;"`
 	Guarantors           []*Customer_guarantors         `orm:"reverse(many);null;"`

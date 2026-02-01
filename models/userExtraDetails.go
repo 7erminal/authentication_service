@@ -13,9 +13,9 @@ import (
 type UserExtraDetails struct {
 	UserDetailsId int64     `orm:"auto"`
 	User          int64     `orm:"column(user_id)"`
-	Branch        *Branches `orm:"rel(fk);column(branch);omitempty;null"`
-	Shop          *Shops    `orm:"rel(fk);omitempty;null"`
-	Nickname      string    `orm:"size(100);omitempty;null"`
+	Branch        *Branches `orm:"rel(fk);column(branch);null"`
+	Shop          *Shops    `orm:"rel(fk);null"`
+	Nickname      string    `orm:"size(100);null"`
 	DateCreated   time.Time `orm:"type(datetime)"`
 	DateModified  time.Time `orm:"type(datetime)"`
 	CreatedBy     int

@@ -135,6 +135,16 @@ func (c *AuthenticationController) LoginToken() {
 
 	logs.Info("Received ", v.Password, v.Username)
 
+	ipAddress := c.Ctx.Request.RemoteAddr
+
+	logs.Info("IP Address ", ipAddress)
+
+	statusCode := 400
+	statusMessage := "Failed"
+	accessTokenObj := &models.AccessTokens{}
+	refreshTokenObj := &models.RefreshTokens{}
+	// userAgent := c.Ctx.Request.UserAgent()
+
 	if a, err := models.GetUsersByUsername(v.Username); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 		logs.Info("User role is ", a.Role.Role)
@@ -145,58 +155,161 @@ func (c *AuthenticationController) LoginToken() {
 
 				logs.Error(err.Error())
 
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Incorrect password"}
+				statusCode = 605
+				statusMessage = "Incorrect password"
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: statusMessage}
 				c.Data["json"] = resp
 
 			} else {
 				c.Ctx.Output.SetStatus(200)
 
-				token, expiryTime, err := functions.CreateToken(v.Username)
+				// Create access token (15 minutes expiry)
+				token, expiryTime, err := functions.CreateAccessToken(v.Username)
 
-				logs.Info("Token created is ", token)
+				logs.Info("access Token created is ", token)
 
 				if err != nil {
 					logs.Error("Error updating token. ", err.Error())
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
+					statusCode = 301
+					statusMessage = "Error generating token"
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
 					c.Data["json"] = resp
 				} else {
+					// Revoke old tokens for this user
 					updateToken := models.AccessTokens{User: a, Revoked: true}
 					if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
-						t := time.Unix(expiryTime, 0)
-						tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-						if _, err := models.AddAccessTokens(&tokenObj); err == nil {
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
-							c.Data["json"] = resp
-						} else {
-							logs.Error("Error adding token. ", err.Error())
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-							c.Data["json"] = resp
+						logs.Error("Error revoking old tokens. ", err.Error())
+					}
+
+					t := time.Unix(expiryTime, 0)
+					tokenObj := models.AccessTokens{
+						User:        a,
+						Token:       token,
+						ExpiresAt:   t,
+						DateCreated: time.Now(),
+					}
+					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+						statusCode = 200
+						statusMessage = "Access token generated successfully"
+						accessTokenObj = &tokenObj
+
+						// Create refresh token (7 days)
+						refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
+						if err != nil {
+							logs.Error("Error generating refresh token: ", err.Error())
+							c.Data["json"] = err.Error()
+							c.ServeJSON()
+							return
+						}
+
+						// Store refresh token
+						refreshTokenObj := models.RefreshTokens{
+							User:        a,
+							Token:       refreshToken,
+							ExpiresAt:   time.Unix(refreshExpiryTime, 0),
+							IPAddress:   ipAddress,
+							UserAgent:   "", //userAgent,
+							AccessToken: accessTokenObj,
+							DateCreated: time.Now(),
+						}
+
+						if _, err := models.AddRefreshTokens(&refreshTokenObj); err != nil {
+							logs.Error("Error saving refresh token: ", err.Error())
+							c.Data["json"] = err.Error()
+							c.ServeJSON()
+							return
 						}
 					} else {
-						t := time.Unix(expiryTime, 0)
-						tokenObj := models.AccessTokens{User: a, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-						if _, err := models.AddAccessTokens(&tokenObj); err == nil {
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
-							c.Data["json"] = resp
-						} else {
-							logs.Error("Error adding token. ", err.Error())
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-							c.Data["json"] = resp
-						}
-						// logs.Error("Error updating token. ")
-						// var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-						// c.Data["json"] = resp
+						logs.Error("Error adding token. ", err.Error())
+						statusCode = 301
+						statusMessage = "Error generating token"
 					}
+
 				}
 			}
 		} else {
 			logs.Error("User is not active ", a.Active)
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 607, User: nil, StatusDesc: "Inactive user"}
-			c.Data["json"] = resp
+			statusCode = 607
+			statusMessage = "Inactive user"
 		}
 	} else {
 		logs.Error(err.Error())
-		var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Unidentified user"}
+		statusCode = 605
+		statusMessage = "Unidentified user"
+	}
+	var tokenResponse = responsesDTOs.TokenResponseDTO{
+		AccessToken:  accessTokenObj.Token,
+		RefreshToken: refreshTokenObj.Token,
+		TokenType:    "Bearer",
+		ExpiresIn:    3600,
+	}
+
+	var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: statusCode, StatusDesc: statusMessage, Result: &tokenResponse}
+	c.Data["json"] = resp
+	c.ServeJSON()
+}
+
+// Refresh access token ...
+// @Title Refresh Access Token
+// @Description Refresh Access Token
+// @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
+// @Success 201 {object} models.UserResponseDTO
+// @Failure 403 body is empty
+// @router /refresh/token [post]
+func (c *AuthenticationController) RefreshAccessToken() {
+	var v requestsDTOs.RefreshTokenRequest
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Refresh token request received")
+
+	// Validate refresh token
+	if refreshTokenObj, err := models.GetRefreshTokensByToken(v.RefreshToken); err == nil {
+		if refreshTokenObj.ExpiresAt.After(time.Now()) && !refreshTokenObj.Revoked {
+			// Create new access token
+			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.User.Username)
+			if err != nil {
+				c.Data["json"] = err.Error()
+				c.ServeJSON()
+				return
+			}
+
+			accessTokenObj := models.AccessTokens{
+				User:        refreshTokenObj.User,
+				Token:       accessToken,
+				ExpiresAt:   time.Unix(accessExpiryTime, 0),
+				IPAddress:   c.Ctx.Request.RemoteAddr,
+				DateCreated: time.Now(),
+			}
+
+			if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
+				c.Data["json"] = err.Error()
+				c.ServeJSON()
+				return
+			}
+
+			var resp = responsesDTOs.TokenResponseDTO{
+				AccessToken:  accessToken,
+				RefreshToken: v.RefreshToken, // Return same refresh token
+				TokenType:    "Bearer",
+				ExpiresIn:    900,
+			}
+			c.Data["json"] = resp
+		} else {
+			c.Ctx.Output.SetStatus(401)
+			var resp = responsesDTOs.StringResponseDTO{
+				StatusCode: 605,
+				Value:      "",
+				StatusDesc: "Refresh token expired or revoked",
+			}
+			c.Data["json"] = resp
+		}
+	} else {
+		c.Ctx.Output.SetStatus(401)
+		var resp = responsesDTOs.StringResponseDTO{
+			StatusCode: 605,
+			Value:      "",
+			StatusDesc: "Invalid refresh token",
+		}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()
@@ -233,7 +346,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 			} else {
 				c.Ctx.Output.SetStatus(200)
 
-				token, expiryTime, err := functions.CreateToken(v.Username)
+				token, expiryTime, err := functions.CreateAccessToken(v.Username)
 
 				logs.Info("Token created is ", token)
 

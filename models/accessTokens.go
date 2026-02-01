@@ -19,7 +19,7 @@ type AccessTokens struct {
 	DateModified  time.Time `orm:"type(datetime)"`
 	ExpiresAt     time.Time `orm:"type(datetime)"`
 	Revoked       bool
-	IpAddress     string    `orm:"size(80)"`
+	IPAddress     string    `orm:"size(80)"`
 	LastUsedAt    time.Time `orm:"type(datetime)"`
 }
 
