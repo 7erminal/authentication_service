@@ -27,8 +27,24 @@ func GenerateKey() ([]byte, error) {
 	return key, err
 }
 
-func CreateToken(username string) (string, int64, error) {
-	expiryTime := time.Now().Add(time.Hour * 4).Unix()
+func CreateAccessToken(username string) (string, int64, error) {
+	expiryTime := time.Now().Add(time.Hour * 1).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"username": username,
+			"exp":      expiryTime,
+		})
+
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return tokenString, expiryTime, nil
+}
+
+func CreateRefreshToken(username string) (string, int64, error) {
+	expiryTime := time.Now().Add(time.Hour * 24 * 7).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,

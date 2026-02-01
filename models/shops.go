@@ -16,7 +16,7 @@ type Shops struct {
 	ShopDescription     string    `orm:"size(255)"`
 	ShopAssistantName   string    `orm:"size(100)"`
 	ShopAssistantNumber string    `orm:"size(100)"`
-	Image               string    `orm:"size(100);omitempty"`
+	Image               string    `orm:"size(100)"`
 	DateCreated         time.Time `orm:"type(datetime)"`
 	DateModified        time.Time `orm:"type(datetime)"`
 	CreatedBy           int

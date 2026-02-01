@@ -26,8 +26,8 @@ type Users struct {
 	Address       string            `orm:"size(255)"`
 	IdType        string            `orm:"size(5)"`
 	IdNumber      string            `orm:"size(100)"`
-	MaritalStatus string            `orm:"size(255);omitempty"`
-	Role          *Roles            `orm:"rel(fk);column(role);omitempty;null"`
+	MaritalStatus string            `orm:"size(255)"`
+	Role          *Roles            `orm:"rel(fk);column(role);null"`
 	Active        int
 	IsVerified    bool
 	DateCreated   time.Time `orm:"type(datetime)"`

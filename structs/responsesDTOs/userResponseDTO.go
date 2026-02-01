@@ -51,3 +51,11 @@ type CustomerResponseDTO struct {
 	Result     *models.Customers
 	StatusDesc string
 }
+
+type LoginResponseDTO struct {
+	StatusCode   int
+	AccessToken  string
+	RefreshToken string
+	User         *models.Users
+	StatusDesc   string
+}

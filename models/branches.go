@@ -16,11 +16,11 @@ type Branches struct {
 	Country      *Countries `orm:"rel(fk);column(country_id)"`
 	Location     string
 	PhoneNumber  string
-	Active       int       `orm:"omitempty"`
-	DateCreated  time.Time `orm:"type(datetime);omitempty"`
-	DateModified time.Time `orm:"type(datetime);omitempty"`
-	CreatedBy    int       `orm:"omitempty"`
-	ModifiedBy   int       `orm:"omitempty"`
+	Active       int       `orm:"null"`
+	DateCreated  time.Time `orm:"type(datetime)"`
+	DateModified time.Time `orm:"type(datetime)"`
+	CreatedBy    int       `orm:"null"`
+	ModifiedBy   int       `orm:"null"`
 }
 
 func init() {
