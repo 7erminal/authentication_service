@@ -244,7 +244,14 @@ func (c *AuthenticationController) LoginToken() {
 		ExpiresIn:    3600,
 	}
 
-	var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: statusCode, StatusDesc: statusMessage, Result: &tokenResponse}
+	userType := "CUSTOMER"
+
+	result := responsesDTOs.LoginDataResponseDTO{
+		UserType: userType,
+		Token:    &tokenResponse,
+	}
+
+	var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: statusCode, StatusDesc: statusMessage, Result: &result}
 	c.Data["json"] = resp
 	c.ServeJSON()
 }

@@ -7,8 +7,13 @@ type TokenResponseDTO struct {
 	ExpiresIn    int64
 }
 
+type LoginDataResponseDTO struct {
+	UserType string
+	Token    *TokenResponseDTO
+}
+
 type LoginTokenResponseDTO struct {
 	StatusCode int
-	Result     *TokenResponseDTO
+	Result     *LoginDataResponseDTO
 	StatusDesc string
 }
