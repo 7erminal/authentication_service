@@ -184,10 +184,11 @@ func (c *AuthenticationController) LoginToken() {
 
 					t := time.Unix(expiryTime, 0)
 					tokenObj := models.AccessTokens{
-						User:        a,
-						Token:       token,
-						ExpiresAt:   t,
-						DateCreated: time.Now(),
+						User:         a,
+						Token:        token,
+						ExpiresAt:    t,
+						DateCreated:  time.Now(),
+						DateModified: time.Now(),
 					}
 					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
 						statusCode = 200
@@ -205,13 +206,14 @@ func (c *AuthenticationController) LoginToken() {
 
 						// Store refresh token
 						refreshTokenObj := models.RefreshTokens{
-							User:        a,
-							Token:       refreshToken,
-							ExpiresAt:   time.Unix(refreshExpiryTime, 0),
-							IPAddress:   ipAddress,
-							UserAgent:   "", //userAgent,
-							AccessToken: accessTokenObj,
-							DateCreated: time.Now(),
+							User:         a,
+							Token:        refreshToken,
+							ExpiresAt:    time.Unix(refreshExpiryTime, 0),
+							IPAddress:    ipAddress,
+							UserAgent:    "", //userAgent,
+							AccessToken:  accessTokenObj,
+							DateCreated:  time.Now(),
+							DateModified: time.Now(),
 						}
 
 						if _, err := models.AddRefreshTokens(&refreshTokenObj); err != nil {
@@ -395,13 +397,14 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 								logs.Info("Refresh Token created is ", refreshToken)
 								// Store refresh token
 								refreshTokenObj = &models.CustomerRefreshTokens{
-									Customer:    a.Customer,
-									Token:       refreshToken,
-									ExpiresAt:   time.Unix(refreshExpiryTime, 0),
-									IPAddress:   ipAddress,
-									UserAgent:   "", //userAgent,
-									AccessToken: accessTokenObj,
-									DateCreated: time.Now(),
+									Customer:     a.Customer,
+									Token:        refreshToken,
+									ExpiresAt:    time.Unix(refreshExpiryTime, 0),
+									IPAddress:    ipAddress,
+									UserAgent:    "", //userAgent,
+									AccessToken:  accessTokenObj,
+									DateCreated:  time.Now(),
+									DateModified: time.Now(),
 								}
 
 								if _, err := models.AddCustomerRefreshTokens(refreshTokenObj); err != nil {
