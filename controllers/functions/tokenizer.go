@@ -45,7 +45,7 @@ func CreateAccessToken(username string) (string, int64, error) {
 }
 
 func CreateRefreshToken(username string) (string, int64, error) {
-	expiryTime := time.Now().Add(time.Hour * 24 * 7).Unix()
+	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,

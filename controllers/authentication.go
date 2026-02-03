@@ -275,7 +275,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetRefreshTokensByToken(v.RefreshToken); err == nil {
-		if refreshTokenObj.ExpiresAt.After(time.Now()) && !refreshTokenObj.Revoked {
+		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 			// Create new access token
 			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.User.Username)
 			if err != nil {
@@ -471,7 +471,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetCustomerRefreshTokensByToken(v.RefreshToken); err == nil {
-		if refreshTokenObj.ExpiresAt.After(time.Now()) && !refreshTokenObj.Revoked {
+		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 			// Create new access token
 			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.Customer.CustomerNumber)
 			if err != nil {
