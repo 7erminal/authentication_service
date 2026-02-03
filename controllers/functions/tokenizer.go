@@ -28,6 +28,7 @@ func GenerateKey() ([]byte, error) {
 }
 
 func CreateAccessToken(username string) (string, int64, error) {
+	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	expiryTime := time.Now().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
