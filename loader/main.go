@@ -24,4 +24,5 @@ func main() {
 // your models here.
 func init() {
 	orm.RegisterModel(new(models.RefreshTokens))
+	orm.RegisterModel(new(models.CustomerRefreshTokens))
 }
