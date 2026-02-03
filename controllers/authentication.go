@@ -381,8 +381,8 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 					} else {
 						logs.Info("Old tokens revoked successfully. Generating new token...")
 						t := time.Unix(expiryTime, 0)
-						tokenObj := models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-						if _, err := models.AddCustomer_access_tokens(&tokenObj); err == nil {
+						accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+						if _, err := models.AddCustomer_access_tokens(accessTokenObj); err == nil {
 							logs.Info("Access token added successfully")
 							statusCode = 200
 							statusMessage = "Access token generated successfully"
