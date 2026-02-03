@@ -85,7 +85,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
 				logs.Info("Time now is ", time.Now())
 
-				if tokenObj.ExpiresAt.After(time.Now()) {
+				if tokenObj.ExpiresAt.After(time.Now().UTC()) {
 					logs.Info("Token is valid")
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: tokenObj.User}
 					return resp, nil
