@@ -43,6 +43,7 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("ChangeCustomerPassword", c.ChangeCustomerPassword)
 	c.Mapping("ResetCustomerPassword", c.ResetCustomerPassword)
 	c.Mapping("RefreshAccessToken", c.RefreshAccessToken)
+	c.Mapping("RefreshCustomerAccessToken", c.RefreshCustomerAccessToken)
 }
 
 // Login ...
@@ -265,7 +266,7 @@ func (c *AuthenticationController) LoginToken() {
 // @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
 // @Success 201 {object} models.UserResponseDTO
 // @Failure 403 body is empty
-// @router /refresh/token [post]
+// @router /refresh/user/token [post]
 func (c *AuthenticationController) RefreshAccessToken() {
 	var v requestsDTOs.RefreshTokenRequest
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
@@ -461,7 +462,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 // @Param	body		body 	models.AuthenticationDTO	true		"body for Authentication content"
 // @Success 201 {object} models.UserResponseDTO
 // @Failure 403 body is empty
-// @router /refresh/token [post]
+// @router /refresh/customer/token [post]
 func (c *AuthenticationController) RefreshCustomerAccessToken() {
 	var v requestsDTOs.RefreshTokenRequest
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)

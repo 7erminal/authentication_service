@@ -81,6 +81,24 @@ func init() {
 
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
+            Method: "RefreshCustomerAccessToken",
+            Router: `/refresh/customer/token`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
+            Method: "RefreshAccessToken",
+            Router: `/refresh/user/token`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
             Method: "ResendOTP",
             Router: `/resend-otp`,
             AllowHTTPMethods: []string{"post"},
