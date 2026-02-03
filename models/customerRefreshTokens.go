@@ -25,7 +25,7 @@ type CustomerRefreshTokens struct {
 }
 
 func init() {
-	// orm.RegisterModel(new(CustomerRefreshTokens))
+	orm.RegisterModel(new(CustomerRefreshTokens))
 }
 
 // AddRefreshTokens insert a new RefreshTokens into database and returns
