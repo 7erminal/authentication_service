@@ -29,7 +29,7 @@ func GenerateKey() ([]byte, error) {
 
 func CreateAccessToken(username string) (string, int64, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
-	expiryTime := time.Now().Add(time.Hour * 1).Unix()
+	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,
@@ -120,7 +120,7 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 			if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
 				logs.Info("Token fetched is ", tokenObj.Token)
 				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-				logs.Info("Time now is ", time.Now())
+				logs.Info("Time now is ", time.Now().UTC())
 				customerJson, err := json.Marshal(tokenObj.Customer)
 				if err != nil {
 					logs.Error("Error marshalling customer to JSON: ", err.Error())
@@ -128,7 +128,7 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 					logs.Info("Customer for token is ", string(customerJson))
 				}
 
-				if tokenObj.ExpiresAt.After(time.Now()) {
+				if tokenObj.ExpiresAt.After(time.Now().UTC()) {
 					logs.Info("Token is valid")
 					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: tokenObj.Customer}
 					return resp, nil
