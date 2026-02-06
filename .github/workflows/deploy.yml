@@ -13,7 +13,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    environment: skill-builder
+    environment: production
     steps:
     - uses: actions/checkout@v4
 
@@ -30,7 +30,7 @@ jobs:
       run: |
         sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@184.174.33.200 << 'EOF'
           set -e  # Exit on any error
-          cd /usr/app/skill_builder_auth_service
+          cd /usr/app/skill-builder-auth-service
           git stash
           git pull origin skill-builder  # Use branch explicitly
           go build -o skill-builder-auth-service
