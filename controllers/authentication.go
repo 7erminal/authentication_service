@@ -357,31 +357,53 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 				} else {
 					updateToken := models.Customer_access_tokens{Customer: a.Customer, Revoked: true}
 					if err := models.UpdateCustomer_access_tokensByCustomer(&updateToken); err != nil {
-						t := time.Unix(expiryTime, 0)
-						tokenObj := models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-						if _, err := models.AddCustomer_access_tokens(&tokenObj); err == nil {
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "Customer has been authenticated"}
-							c.Data["json"] = resp
+						statusMessage = fmt.Sprintf("Error revoking old tokens. %s", err.Error())
+						logs.Error(statusMessage)
+					}
+					logs.Info("Old tokens revoked successfully. Generating new token...")
+					t := time.Unix(expiryTime, 0)
+					accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+					if _, err := models.AddCustomer_access_tokens(accessTokenObj); err == nil {
+						logs.Info("Access token added successfully")
+						statusCode = 200
+						statusMessage = "Access token generated successfully"
+
+						// Create refresh token (7 days)
+						refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
+						if err != nil {
+							logs.Error("Error generating refresh token: ", err.Error())
+							statusCode = 301
+							statusMessage = "Error generating token"
 						} else {
-							logs.Error("Error adding token. ", err.Error())
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-							c.Data["json"] = resp
+							logs.Info("Refresh Token created is ", refreshToken)
+							// Store refresh token
+							refreshTokenObj = &models.CustomerRefreshTokens{
+								Customer:     a.Customer,
+								Token:        refreshToken,
+								ExpiresAt:    time.Unix(refreshExpiryTime, 0),
+								IPAddress:    ipAddress,
+								UserAgent:    "", //userAgent,
+								AccessToken:  accessTokenObj,
+								DateCreated:  time.Now(),
+								DateModified: time.Now(),
+							}
+
+							if _, err := models.AddCustomerRefreshTokens(refreshTokenObj); err != nil {
+								logs.Error("Error saving refresh token: ", err.Error())
+								statusCode = 301
+								statusMessage = "Error generating token"
+							} else {
+								logs.Info("Refresh token added successfully")
+								statusCode = 200
+								statusMessage = "Tokens generated successfully"
+							}
 						}
 					} else {
-						t := time.Unix(expiryTime, 0)
-						tokenObj := models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-						if _, err := models.AddCustomer_access_tokens(&tokenObj); err == nil {
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: token, StatusDesc: "User has been authenticated"}
-							c.Data["json"] = resp
-						} else {
-							logs.Error("Error adding token. ", err.Error())
-							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-							c.Data["json"] = resp
-						}
-						// logs.Error("Error updating token. ")
-						// var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
-						// c.Data["json"] = resp
+						logs.Error("Error adding token. ", err.Error())
+						statusCode = 301
+						statusMessage = "Error generating token"
 					}
+
 				}
 			}
 		} else {
