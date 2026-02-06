@@ -450,6 +450,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 		UserType: userType,
 		Token:    &tokenResponse,
 	}
+	logs.Info("Login response being sent is ", result)
 
 	var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: statusCode, StatusDesc: statusMessage, Result: &result}
 	c.Data["json"] = resp
