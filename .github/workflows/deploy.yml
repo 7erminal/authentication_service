@@ -28,11 +28,16 @@ jobs:
           GIT_PASSWORD: ${{ secrets.GIT_PASSWORD }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
       run: |
-        sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@184.174.33.200 << 'EOF'
-          set -e  # Exit on any error
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+
+        ssh -o StrictHostKeyChecking=no root@184.174.33.200 << 'EOF'
+          set -e
           cd /usr/app/skill-builder-auth-service
           git stash
-          git pull origin skill-builder  # Use branch explicitly
+          git pull origin skill-builder
           go build -o skill-builder-auth-service
-          pm2 restart skill-builder-auth-service || pm2 start skill-builder-auth-service --name skill-builder-auth-service
-        EOF 
+          pm2 restart skill-builder-auth-service || \
+          pm2 start skill-builder-auth-service --name skill-builder-auth-service
+        EOF
