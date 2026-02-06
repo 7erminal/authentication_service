@@ -5,15 +5,15 @@ name: Go
 
 on:
   push:
-    branches: [ "makufoods" ]
+    branches: [ "skill-builder" ]
   pull_request:
-    branches: [ "makufoods" ]
+    branches: [ "skill-builder" ]
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
-    environment: makufoods
+    environment: skill-builder
     steps:
     - uses: actions/checkout@v4
 
@@ -30,9 +30,9 @@ jobs:
       run: |
         sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@184.174.33.200 << 'EOF'
           set -e  # Exit on any error
-          cd /usr/app/maku_foods_auth_service
+          cd /usr/app/skill_builder_auth_service
           git stash
-          git pull origin makufoods  # Use branch explicitly
-          go build -o maku-foods-auth-service
-          pm2 restart maku-foods-auth-service || pm2 start maku-foods-auth-service --name maku-foods-auth-service
+          git pull origin skill-builder  # Use branch explicitly
+          go build -o skill-builder-auth-service
+          pm2 restart skill-builder-auth-service || pm2 start skill-builder-auth-service --name skill-builder-auth-service
         EOF 
