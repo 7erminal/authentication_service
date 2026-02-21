@@ -20,7 +20,7 @@ func main() {
 	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:5174", "https://admin.mestechltd.com", "https://client.mestechltd.com", "https://authentication.mestechltd.com"},
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:5174", "https://admin.mestechltd.com", "https://client.mestechltd.com", "https://authentication-service.mestechltd.com", "https://customer-management-service.mestechltd.com"},
 		AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
