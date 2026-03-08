@@ -268,13 +268,12 @@ func (c *AuthenticationController) LoginToken() {
 // @Failure 403 body is empty
 // @router /refresh/user/token [post]
 func (c *AuthenticationController) RefreshAccessToken() {
-	var v requestsDTOs.RefreshTokenRequest
-	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+	refreshToken := c.Ctx.Input.Header("RefreshToken")
 
 	logs.Info("Refresh token request received")
 
 	// Validate refresh token
-	if refreshTokenObj, err := models.GetRefreshTokensByToken(v.RefreshToken); err == nil {
+	if refreshTokenObj, err := models.GetRefreshTokensByToken(refreshToken); err == nil {
 		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 			// Create new access token
 			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.User.Username)
@@ -300,7 +299,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 			var resp = responsesDTOs.TokenResponseDTO{
 				AccessToken:  accessToken,
-				RefreshToken: v.RefreshToken, // Return same refresh token
+				RefreshToken: refreshToken, // Return same refresh token
 				TokenType:    "Bearer",
 				ExpiresIn:    900,
 			}
@@ -465,13 +464,12 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 // @Failure 403 body is empty
 // @router /refresh/customer/token [post]
 func (c *AuthenticationController) RefreshCustomerAccessToken() {
-	var v requestsDTOs.RefreshTokenRequest
-	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+	refreshToken := c.Ctx.Input.Header("RefreshToken")
 
 	logs.Info("Refresh customer token request received")
 
 	// Validate refresh token
-	if refreshTokenObj, err := models.GetCustomerRefreshTokensByToken(v.RefreshToken); err == nil {
+	if refreshTokenObj, err := models.GetCustomerRefreshTokensByToken(refreshToken); err == nil {
 		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 			// Create new access token
 			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.Customer.CustomerNumber)
@@ -497,7 +495,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 
 			var resp = responsesDTOs.TokenResponseDTO{
 				AccessToken:  accessToken,
-				RefreshToken: v.RefreshToken, // Return same refresh token
+				RefreshToken: refreshToken, // Return same refresh token
 				TokenType:    "Bearer",
 				ExpiresIn:    900,
 			}
