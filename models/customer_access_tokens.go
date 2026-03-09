@@ -19,7 +19,7 @@ type Customer_access_tokens struct {
 	DateModified time.Time  `orm:"type(datetime)"`
 	ExpiresAt    time.Time  `orm:"type(datetime)"`
 	Revoked      bool
-	IpAddress    string    `orm:"size(80)"`
+	IpAddress    string    `orm:"size(80);column(ip_address)"`
 	LastUsedAt   time.Time `orm:"type(datetime)"`
 }
 
