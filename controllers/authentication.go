@@ -153,6 +153,7 @@ func (c *AuthenticationController) LoginToken() {
 		if a.Active == 1 {
 			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
 				// If the two passwords don't match, return a 401 status
+				logs.Info("Invalid password provided")
 				c.Data["json"] = err.Error()
 
 				logs.Error(err.Error())
@@ -164,6 +165,8 @@ func (c *AuthenticationController) LoginToken() {
 
 			} else {
 				c.Ctx.Output.SetStatus(200)
+
+				logs.Info("Successfully validated credentials")
 
 				// Create access token (15 minutes expiry)
 				token, expiryTime, err := functions.CreateAccessToken(v.Username)
