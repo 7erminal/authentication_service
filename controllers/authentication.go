@@ -147,9 +147,10 @@ func (c *AuthenticationController) LoginToken() {
 	refreshTokenObj := &models.RefreshTokens{}
 	// userAgent := c.Ctx.Request.UserAgent()
 
-	if a, err := models.GetUsersByUsername(v.Username); err == nil {
+	if a, err := models.GetUsersByUsername(strings.Trim(v.Username, " ")); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 		// logs.Info("User role is ", a.Role.Role)
+		logs.Info("User credentials fetched for user ", a.Username)
 		if a.Active == 1 {
 			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
 				// If the two passwords don't match, return a 401 status
@@ -240,6 +241,7 @@ func (c *AuthenticationController) LoginToken() {
 			statusMessage = "Inactive user"
 		}
 	} else {
+		logs.Error("Unable to find user ", v.Username)
 		logs.Error(err.Error())
 		statusCode = 605
 		statusMessage = "Unidentified user"
