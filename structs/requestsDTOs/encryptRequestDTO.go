@@ -16,6 +16,6 @@ type TokenDTO struct {
 }
 
 type VerifyTokenReq struct {
-	Token string
-	Email string
+	Token    string
+	Username string
 }

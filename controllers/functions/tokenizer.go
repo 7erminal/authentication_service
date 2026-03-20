@@ -112,6 +112,35 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 	}
 }
 
+func GetUserFromBearerToken(authorizationHeader string) (*models.Users, error) {
+	authorizationHeader = strings.TrimSpace(authorizationHeader)
+	if authorizationHeader == "" {
+		return nil, fmt.Errorf("authorization header is required")
+	}
+
+	tokenString := authorizationHeader
+	parts := strings.SplitN(authorizationHeader, " ", 2)
+	if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+		tokenString = parts[1]
+	}
+
+	tokenString = strings.TrimSpace(tokenString)
+	if tokenString == "" {
+		return nil, fmt.Errorf("access token is missing")
+	}
+
+	tokenResp, err := CheckTokenExpiry(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	if !tokenResp.IsValid || tokenResp.User == nil {
+		return nil, fmt.Errorf("invalid access token")
+	}
+
+	return tokenResp.User, nil
+}
+
 func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenResponseDTO, error) {
 
 	if token, err := VerifyToken(token_); err == nil {

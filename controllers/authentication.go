@@ -1208,7 +1208,7 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 // @Failure 403 body is empty
 // @router /token/verify [post]
 func (c *AuthenticationController) VerifyToken() {
-	var q requestsDTOs.VerifyTokenReq
+	var q requestsDTOs.TokenDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
 	logs.Info("About to verify token ", q.Token)
@@ -1216,37 +1216,66 @@ func (c *AuthenticationController) VerifyToken() {
 	statusCode := 608
 	message := "Unable to verify token"
 
-	if tokenObj, err := models.GetUserTokensByToken(q.Token); err == nil {
+	authorization := c.Ctx.Input.Header("Authorization")
+	requestUser, err := functions.GetUserFromBearerToken(authorization)
+	if err != nil {
+		c.Ctx.Output.SetStatus(401)
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Invalid or missing access token"}
+		c.Data["json"] = resp
+		c.ServeJSON()
+		return
+	}
+
+	if tokenObj, err := models.GetRefreshTokensByToken(q.Token); err == nil {
 		logs.Info("Token object is ", tokenObj)
-		if plainText, err := functions.GetAESDecrypted(tokenObj.Token, tokenObj.Nonce); err == nil {
-			logs.Info("Decrypted token is ", plainText)
 
-			splitText := strings.Split(plainText, "__")
-
-			email := ""
-			if len(splitText) > 1 {
-				email = splitText[0]
-			} else {
-				email = splitText[0]
-			}
-
-			if user, err := models.GetUsersByUsername(email); err == nil {
-				statusCode = 200
-				message = "Successfully validated"
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: user, StatusDesc: message}
-				c.Data["json"] = resp
-			} else {
-				statusCode = 708
-				message = "user not found"
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
-				c.Data["json"] = resp
-			}
-		} else {
-			logs.Error("Error validating token...", err.Error())
-			statusCode = 708
+		if tokenObj.User == nil {
+			statusCode = 703
+			message = "Token is not linked to any user"
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
 			c.Data["json"] = resp
+			c.ServeJSON()
+			return
 		}
+
+		// Optional hardening: bind to device/network
+		if tokenObj.IPAddress != "" && tokenObj.IPAddress != c.Ctx.Request.RemoteAddr {
+			c.Ctx.Output.SetStatus(401)
+			c.Data["json"] = responsesDTOs.StringResponseDTO{
+				StatusCode: 605,
+				Value:      "",
+				StatusDesc: "Token IP mismatch",
+			}
+			c.ServeJSON()
+			return
+		}
+
+		if tokenObj.Revoked || !tokenObj.ExpiresAt.After(time.Now().UTC()) {
+			c.Ctx.Output.SetStatus(401)
+			c.Data["json"] = responsesDTOs.StringResponseDTO{
+				StatusCode: 605,
+				Value:      "",
+				StatusDesc: "Refresh token expired or revoked",
+			}
+			c.ServeJSON()
+			return
+		}
+
+		if tokenObj.User.UserId != requestUser.UserId {
+			c.Ctx.Output.SetStatus(401)
+			c.Data["json"] = responsesDTOs.StringResponseDTO{
+				StatusCode: 605,
+				Value:      "",
+				StatusDesc: "Token does not belong to this user",
+			}
+			c.ServeJSON()
+			return
+		}
+
+		statusCode = 200
+		message = "Successfully validated"
+		var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: tokenObj.User, StatusDesc: message}
+		c.Data["json"] = resp
 	} else {
 		logs.Error("Error validating token...", err.Error())
 		statusCode = 703
