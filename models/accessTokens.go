@@ -56,7 +56,7 @@ func GetAccessTokensByToken(token string) (v *AccessTokens, err error) {
 		if err != nil {
 			logs.Error("Error loading related User details: ", err)
 		} else {
-			_, err = o.LoadRelated(v.User.UserDetails.Branch, "Branch")
+			_, err = o.LoadRelated(v.User.UserDetails, "Branch")
 			if err != nil {
 				logs.Error("Error loading related User details branch: ", err)
 			}
