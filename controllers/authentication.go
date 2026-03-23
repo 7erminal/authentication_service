@@ -1147,44 +1147,6 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 		if token.IsValid {
 			logs.Info("Token is still valid. User is ", token.User)
 			logs.Info("User role is ", token.User.Role.Role)
-			// cust, err := models.GetCustomersByUser(token.User)
-
-			// if err != nil {
-			// 	c.Data["json"] = err.Error()
-
-			// 	var resp = responsesDTOs.UserResponseDTO{StatusCode: 601, User: nil, StatusDesc: "Error verifying user"}
-			// 	c.Data["json"] = resp
-			// } else {
-			// 	logs.Info("Getting the customer ", cust.Branch.Country.DefaultCurrency.CurrencyId)
-
-			// 	userResp := responsesDTOs.UserResp{
-			// 		UserId:        token.User.UserId,
-			// 		ImagePath:     token.User.ImagePath,
-			// 		UserType:      token.User.UserType,
-			// 		FullName:      token.User.FullName,
-			// 		Username:      token.User.Username,
-			// 		Password:      token.User.Password,
-			// 		Email:         token.User.Email,
-			// 		PhoneNumber:   token.User.PhoneNumber,
-			// 		Gender:        token.User.Gender,
-			// 		Dob:           token.User.Dob,
-			// 		Address:       token.User.Address,
-			// 		IdType:        token.User.IdType,
-			// 		IdNumber:      token.User.IdNumber,
-			// 		MaritalStatus: token.User.MaritalStatus,
-			// 		Active:        token.User.Active,
-			// 		Role:          token.User.Role,
-			// 		IsVerified:    token.User.IsVerified,
-			// 		DateCreated:   token.User.DateCreated,
-			// 		DateModified:  token.User.DateModified,
-			// 		CreatedBy:     token.User.CreatedBy,
-			// 		ModifiedBy:    token.User.ModifiedBy,
-			// 		Branch:        cust.Branch,
-			// 	}
-
-			// 	var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: &userResp, StatusDesc: "Token is valid"}
-			// 	c.Data["json"] = resp
-			// }
 
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: token.User, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
