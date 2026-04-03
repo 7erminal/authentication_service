@@ -30,7 +30,6 @@ type Customers struct {
 	CreatedBy            int
 	ModifiedBy           int
 	Active               int
-	User                 *Users                         `orm:"rel(fk);null"`
 	LastTxnDate          time.Time                      `orm:"type(datetime)"`
 	EmergencyContacts    []*Customer_emergency_contacts `orm:"reverse(many);null;"`
 	Guarantors           []*Customer_guarantors         `orm:"reverse(many);null;"`
@@ -61,14 +60,6 @@ func GetCustomersById(id int64) (v *Customers, err error) {
 
 // GetCustomersByUserId retrieves Customers by User Id. Returns error if
 // Id doesn't exist
-func GetCustomersByUser(user *Users) (v *Customers, err error) {
-	o := orm.NewOrm()
-	v = &Customers{User: user}
-	if err = o.QueryTable(new(Customers)).Filter("User", user).RelatedSel().One(v); err == nil {
-		return v, nil
-	}
-	return nil, err
-}
 
 // GetAllCustomers retrieves all Customers matches certain condition. Returns empty list if
 // no records exist
