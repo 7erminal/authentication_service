@@ -212,7 +212,7 @@ func (c *AuthenticationController) LoginToken() {
 						logs.Info("Refresh token generated is ", refreshToken)
 
 						// Store refresh token
-						refreshTokenObj := models.RefreshTokens{
+						refreshTokenObj = &models.RefreshTokens{
 							User:         a,
 							Token:        refreshToken,
 							ExpiresAt:    time.Unix(refreshExpiryTime, 0),
@@ -223,13 +223,13 @@ func (c *AuthenticationController) LoginToken() {
 							DateModified: time.Now(),
 						}
 
-						if _, err := models.AddRefreshTokens(&refreshTokenObj); err != nil {
+						if _, err := models.AddRefreshTokens(refreshTokenObj); err != nil {
 							logs.Error("Error saving refresh token: ", err.Error())
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
 							return
 						}
-						logs.Info("Refresh token saved successfully")
+						logs.Info("Refresh token saved successfully::  ", refreshTokenObj.Token)
 					} else {
 						logs.Error("Error adding token. ", err.Error())
 						statusCode = 301
