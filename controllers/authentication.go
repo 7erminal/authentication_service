@@ -209,6 +209,8 @@ func (c *AuthenticationController) LoginToken() {
 							return
 						}
 
+						logs.Info("Refresh token generated is ", refreshToken)
+
 						// Store refresh token
 						refreshTokenObj := models.RefreshTokens{
 							User:         a,
@@ -227,6 +229,7 @@ func (c *AuthenticationController) LoginToken() {
 							c.ServeJSON()
 							return
 						}
+						logs.Info("Refresh token saved successfully")
 					} else {
 						logs.Error("Error adding token. ", err.Error())
 						statusCode = 301
