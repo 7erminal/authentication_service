@@ -263,6 +263,8 @@ func (c *AuthenticationController) LoginToken() {
 		Token:    &tokenResponse,
 	}
 
+	logs.Info("Refresh token returned is ", result.Token.RefreshToken)
+
 	var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: statusCode, StatusDesc: statusMessage, Result: &result}
 	c.Data["json"] = resp
 	c.ServeJSON()
