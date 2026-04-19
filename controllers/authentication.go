@@ -330,6 +330,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 			c.Data["json"] = resp
 		}
 	} else {
+		logs.Error("Invalid refresh token provided, ", err.Error())
 		c.Ctx.Output.SetStatus(401)
 		var resp = responsesDTOs.StringResponseDTO{
 			StatusCode: 605,
