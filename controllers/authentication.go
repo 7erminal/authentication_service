@@ -282,6 +282,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 	logs.Info("Refresh token request received")
 
+	logs.Info("About to go get refresh token")
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetRefreshTokensByToken(refreshToken); err == nil {
 		logs.Info("Refresh token found in database ", refreshTokenObj.Token)
