@@ -284,14 +284,18 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetRefreshTokensByToken(refreshToken); err == nil {
+		logs.Info("Refresh token found in database ", refreshTokenObj.Token)
 		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 			// Create new access token
+			logs.Info("Refresh token is valid. Generating new access token...")
 			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.User.Username)
 			if err != nil {
 				c.Data["json"] = err.Error()
 				c.ServeJSON()
 				return
 			}
+
+			logs.Info("New access token generated is ", accessToken)
 
 			accessTokenObj := models.AccessTokens{
 				User:        refreshTokenObj.User,
@@ -315,6 +319,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 			}
 			c.Data["json"] = resp
 		} else {
+			logs.Error("Refresh token expired or revoked")
 			c.Ctx.Output.SetStatus(401)
 			var resp = responsesDTOs.StringResponseDTO{
 				StatusCode: 605,
