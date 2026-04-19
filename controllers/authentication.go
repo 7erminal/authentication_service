@@ -280,7 +280,7 @@ func (c *AuthenticationController) LoginToken() {
 func (c *AuthenticationController) RefreshAccessToken() {
 	refreshToken := c.Ctx.Input.Header("RefreshToken")
 
-	logs.Info("Refresh token request received")
+	logs.Info("Refresh token request received. Refresh token is ", refreshToken)
 
 	logs.Info("About to go get refresh token")
 	// Validate refresh token
