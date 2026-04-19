@@ -312,12 +312,24 @@ func (c *AuthenticationController) RefreshAccessToken() {
 				return
 			}
 
-			var resp = responsesDTOs.TokenResponseDTO{
+			var tokenResponse = responsesDTOs.TokenResponseDTO{
 				AccessToken:  accessToken,
 				RefreshToken: refreshToken, // Return same refresh token
 				TokenType:    "Bearer",
 				ExpiresIn:    900,
 			}
+
+			userType := "USER"
+
+			result := responsesDTOs.LoginDataResponseDTO{
+				UserType: userType,
+				Token:    &tokenResponse,
+			}
+
+			logs.Info("Refresh token returned is ", result.Token.RefreshToken)
+
+			var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Access token generated successfully", Result: &result}
+
 			c.Data["json"] = resp
 		} else {
 			logs.Error("Refresh token expired or revoked")
@@ -327,6 +339,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 				Value:      "",
 				StatusDesc: "Refresh token expired or revoked",
 			}
+
 			c.Data["json"] = resp
 		}
 	} else {
