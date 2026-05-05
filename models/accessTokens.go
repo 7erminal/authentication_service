@@ -14,7 +14,7 @@ import (
 type AccessTokens struct {
 	AccessTokenId int64     `orm:"auto;column(access_token_id)"`
 	Token         string    `orm:"size(255)"`
-	User          *Users    `orm:"rel(fk)"`
+	User          int64     `orm:"column(user_id)"`
 	DateCreated   time.Time `orm:"type(datetime)"`
 	DateModified  time.Time `orm:"type(datetime)"`
 	ExpiresAt     time.Time `orm:"type(datetime)"`
@@ -52,15 +52,7 @@ func GetAccessTokensByToken(token string) (v *AccessTokens, err error) {
 	o := orm.NewOrm()
 	v = &AccessTokens{Token: token}
 	if err = o.QueryTable(new(AccessTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
-		_, err = o.LoadRelated(v.User, "UserDetails")
-		if err != nil {
-			logs.Error("Error loading related User details: ", err)
-		} else {
-			_, err = o.LoadRelated(v.User.UserDetails, "Branch")
-			if err != nil {
-				logs.Error("Error loading related User details branch: ", err)
-			}
-		}
+		logs.Info("Fetched token is ", v.Token)
 		return v, nil
 	}
 	return nil, err

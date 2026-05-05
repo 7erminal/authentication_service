@@ -5,9 +5,9 @@ name: Go
 
 on:
   push:
-    branches: [ "msysmobilizer" ]
+    branches: [ "ecommerce" ]
   pull_request:
-    branches: [ "msysmobilizer" ]
+    branches: [ "ecommerce" ]
 
 jobs:
 
@@ -34,10 +34,10 @@ jobs:
 
         ssh -o StrictHostKeyChecking=no root@185.211.5.90 << 'EOF'
           set -e
-          cd /usr/app/mobile-application/authentication-service
+          cd /usr/app/ecommerce/authentication-service
           git stash
-          git pull origin msysmobilizer
-          go build -o authentication-service
-          pm2 restart authentication-service || \
-          pm2 start authentication-service --name authentication-service
+          git pull origin ecommerce
+          go build -o ecommerce-authentication-service
+          pm2 restart ecommerce-authentication-service || \
+          pm2 start ecommerce-authentication-service --name ecommerce-authentication-service
         EOF

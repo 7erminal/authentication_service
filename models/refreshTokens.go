@@ -13,7 +13,7 @@ import (
 type RefreshTokens struct {
 	RefreshTokenId int64         `orm:"auto;column(refresh_token_id)"`
 	Token          string        `orm:"size(255);unique"`
-	User           *Users        `orm:"rel(fk)"`
+	User           int64         `orm:"column(user_id)"`
 	AccessToken    *AccessTokens `orm:"rel(fk);null"`
 	DateCreated    time.Time     `orm:"type(datetime)"`
 	DateModified   time.Time     `orm:"type(datetime)"`

@@ -2,6 +2,7 @@ package functions
 
 import (
 	"authentication_service/models"
+	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
 	"crypto/aes"
 	"crypto/cipher"
@@ -10,10 +11,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
+	beego "github.com/beego/beego/v2/server/web"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -86,14 +89,32 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
 				logs.Info("Time now is ", time.Now())
 
-				if tokenObj.ExpiresAt.After(time.Now().UTC()) {
-					logs.Info("Token is valid")
-					resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: tokenObj.User}
-					return resp, nil
+				if userResp, err := GetUser(&beego.Controller{}, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(tokenObj.User))}); err == nil {
+					if userResp.StatusCode == 200 {
+						userJson, err := json.Marshal(userResp.User)
+						if err != nil {
+							logs.Error("Error marshalling user to JSON: ", err.Error())
+						} else {
+							logs.Info("User for token is ", string(userJson))
+						}
+						if tokenObj.ExpiresAt.After(time.Now().UTC()) {
+							logs.Info("Token is valid")
+							resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: userResp.User}
+							return resp, nil
+						} else {
+							logs.Info("Token has expired")
+							resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
+							return resp, nil
+						}
+					} else {
+						logs.Error("Error fetching user for token: ", err.Error())
+						resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
+						return resp, err
+					}
 				} else {
-					logs.Info("Token has expired")
+					logs.Error("Error fetching token details: ", err.Error())
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
-					return resp, nil
+					return resp, err
 				}
 			} else {
 				logs.Error("Token does not exist...", err.Error())
@@ -157,14 +178,33 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 					logs.Info("Customer for token is ", string(customerJson))
 				}
 
-				if tokenObj.ExpiresAt.After(time.Now().UTC()) {
-					logs.Info("Token is valid")
-					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: tokenObj.Customer}
-					return resp, nil
+				if customerResp, err := GetCustomer(&beego.Controller{}, requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(tokenObj.Customer))}); err == nil {
+					if customerResp.StatusCode == 200 {
+						customerJson, err := json.Marshal(customerResp.Result)
+						if err != nil {
+							logs.Error("Error marshalling customer to JSON: ", err.Error())
+						} else {
+							logs.Info("Customer for token is ", string(customerJson))
+						}
+
+						if tokenObj.ExpiresAt.After(time.Now().UTC()) {
+							logs.Info("Token is valid")
+							resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: customerResp.Result}
+							return resp, nil
+						} else {
+							logs.Info("Token has expired")
+							resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
+							return resp, nil
+						}
+					} else {
+						logs.Error("Error fetching customer for token: ", err.Error())
+						resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
+						return resp, err
+					}
 				} else {
-					logs.Info("Token has expired")
+					logs.Error("Error fetching token details: ", err.Error())
 					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
-					return resp, nil
+					return resp, err
 				}
 			} else {
 				logs.Error("Token does not exist...", err.Error())

@@ -12,13 +12,13 @@ import (
 )
 
 type Customer_credentials struct {
-	Id           int64      `orm:"auto;column(customer_credential_id)"`
-	Customer     *Customers `orm:"rel(fk)"`
-	Username     string     `orm:"size(255)"`
-	Password     string     `orm:"size(255)"`
-	Pin          string     `orm:"size(10)"`
-	DateCreated  time.Time  `orm:"type(datetime)"`
-	DateModified time.Time  `orm:"type(datetime)"`
+	Id           int64     `orm:"auto;column(customer_credential_id)"`
+	Customer     int64     `orm:"column(customer_id)"`
+	Username     string    `orm:"size(255)"`
+	Password     string    `orm:"size(255)"`
+	Pin          string    `orm:"size(10)"`
+	DateCreated  time.Time `orm:"type(datetime)"`
+	DateModified time.Time `orm:"type(datetime)"`
 	CreatedBy    int
 	ModifiedBy   int
 	Active       int
@@ -53,9 +53,9 @@ func GetCustomer_credentialsById(id int64) (v *Customer_credentials, err error) 
 
 // GetCustomer_credentialsByCustomerId retrieves Customer_credentials by Id. Returns error if
 // Id doesn't exist
-func GetCustomer_credentialsByCustomerId(id Customers) (v *Customer_credentials, err error) {
+func GetCustomer_credentialsByCustomerId(id int64) (v *Customer_credentials, err error) {
 	o := orm.NewOrm()
-	v = &Customer_credentials{Customer: &id}
+	v = &Customer_credentials{Customer: id}
 	if err = o.QueryTable(new(Customer_credentials)).Filter("Customer", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}

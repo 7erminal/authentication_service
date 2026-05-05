@@ -9,6 +9,15 @@ func init() {
 
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
+            Method: "AddCustomerCredential",
+            Router: `/add-customer-credential`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
             Method: "ChangeCustomerPassword",
             Router: `/change-customer-password/:id`,
             AllowHTTPMethods: []string{"put"},
@@ -174,6 +183,15 @@ func init() {
             Method: "VerifyToken",
             Router: `/token/verify`,
             AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
+            Method: "Put",
+            Router: `/update-customer-credential/:customerId`,
+            AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})

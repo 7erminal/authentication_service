@@ -12,12 +12,12 @@ import (
 )
 
 type Customer_access_tokens struct {
-	Id           int64      `orm:"auto;column(customer_access_token_id)"`
-	Token        string     `orm:"size(255)"`
-	Customer     *Customers `orm:"rel(fk)"`
-	DateCreated  time.Time  `orm:"type(datetime)"`
-	DateModified time.Time  `orm:"type(datetime)"`
-	ExpiresAt    time.Time  `orm:"type(datetime)"`
+	Id           int64     `orm:"auto;column(customer_access_token_id)"`
+	Token        string    `orm:"size(255)"`
+	Customer     int64     `orm:"column(customer_id)"`
+	DateCreated  time.Time `orm:"type(datetime)"`
+	DateModified time.Time `orm:"type(datetime)"`
+	ExpiresAt    time.Time `orm:"type(datetime)"`
 	Revoked      bool
 	IpAddress    string    `orm:"size(80);column(ip_address)"`
 	LastUsedAt   time.Time `orm:"type(datetime)"`
@@ -53,8 +53,6 @@ func GetCustomer_access_tokensByToken(token string) (v *Customer_access_tokens, 
 	v = &Customer_access_tokens{Token: token}
 	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
 		logs.Info("Fetched token is ", v.Token)
-		logs.Info("Fetched token belongs to customer ", v.Customer.FullName)
-		logs.Info("Whose date of onboarding is ", v.Customer.DateCreated)
 		return v, nil
 	}
 	return nil, err
