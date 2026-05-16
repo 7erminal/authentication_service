@@ -133,7 +133,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 	}
 }
 
-func GetUserFromBearerToken(authorizationHeader string) (*models.Users, error) {
+func GetUserFromBearerToken(authorizationHeader string) (*responsesDTOs.Users, error) {
 	authorizationHeader = strings.TrimSpace(authorizationHeader)
 	if authorizationHeader == "" {
 		return nil, fmt.Errorf("authorization header is required")

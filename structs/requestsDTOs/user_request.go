@@ -15,3 +15,9 @@ type GetCustomerRequest struct {
 type GetCustomerWithUsernameRequest struct {
 	Username string
 }
+
+type UpdateUserPasswordRequest struct {
+	UserId      int64  `validate:"required"`
+	OldPassword string `validate:"required"`
+	NewPassword string `validate:"required"`
+}

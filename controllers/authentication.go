@@ -623,41 +623,51 @@ func (c *AuthenticationController) ChangePassword() {
 
 	logs.Info("Received ", v.OldPassword, v.NewPassword)
 
-	if a, err := models.GetUsersById(id); err == nil {
-		// Compare the stored hashed password, with the hashed version of the password that was received
-		if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.OldPassword)); err != nil {
-			// If the two passwords don't match, return a 401 status
-			c.Data["json"] = err.Error()
+	if a, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: strconv.FormatInt(id, 10)}); err == nil {
+		if a.StatusCode == 200 {
+			// Compare the stored hashed password, with the hashed version of the password that was received
+			if err := bcrypt.CompareHashAndPassword([]byte(a.User.Password), []byte(v.OldPassword)); err != nil {
+				// If the two passwords don't match, return a 401 status
+				c.Data["json"] = err.Error()
 
-			logs.Error(err.Error())
+				logs.Error(err.Error())
 
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Old password does not match"}
-			c.Data["json"] = resp
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Old password does not match"}
+				c.Data["json"] = resp
 
+			} else {
+				hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+
+				if errr == nil {
+					logs.Debug(hashedPassword)
+
+					a.User.Password = string(hashedPassword)
+
+					logs.Debug("Sending", v.NewPassword)
+
+					// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+				} else {
+					logs.Error("Error hashing password ", errr.Error())
+				}
+
+				if _, err := functions.UpdateUserPassword(&c.Controller, requestsDTOs.UpdateUserPasswordRequest{
+					UserId:      id,
+					OldPassword: v.OldPassword,
+					NewPassword: v.NewPassword,
+				}); err == nil {
+					c.Ctx.Output.SetStatus(200)
+
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "User password has been changed successfully"}
+					c.Data["json"] = resp
+				} else {
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
+					c.Data["json"] = resp
+				}
+			}
 		} else {
-			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
-
-			if errr == nil {
-				logs.Debug(hashedPassword)
-
-				a.Password = string(hashedPassword)
-
-				logs.Debug("Sending", v.NewPassword)
-
-				// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
-			} else {
-				logs.Error("Error hashing password ", errr.Error())
-			}
-
-			if err := models.UpdateUsersById(a); err == nil {
-				c.Ctx.Output.SetStatus(200)
-
-				var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "User password has been changed successfully"}
-				c.Data["json"] = resp
-			} else {
-				var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
-				c.Data["json"] = resp
-			}
+			logs.Error("User not found")
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
+			c.Data["json"] = resp
 		}
 	} else {
 		logs.Error(err.Error())
@@ -686,30 +696,40 @@ func (c *AuthenticationController) ResetPassword() {
 
 	logs.Info("About to decrypt token")
 
-	if a, err := models.GetUsersById(id); err == nil {
+	if a, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: strconv.FormatInt(id, 10)}); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
-		hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+		if a.StatusCode == 200 {
+			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
-		if errr == nil {
-			logs.Debug(hashedPassword)
+			if errr == nil {
+				logs.Debug(hashedPassword)
 
-			a.Password = string(hashedPassword)
+				a.User.Password = string(hashedPassword)
 
-			logs.Debug("Sending", v.NewPassword)
+				logs.Debug("Sending", v.NewPassword)
 
-			// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+				// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+			} else {
+				logs.Error("Error hashing password ", errr.Error())
+			}
+
+			if _, err := functions.UpdateUserPassword(&c.Controller, requestsDTOs.UpdateUserPasswordRequest{
+				UserId:      id,
+				OldPassword: a.User.Password,
+				NewPassword: v.NewPassword,
+			}); err == nil {
+				c.Ctx.Output.SetStatus(200)
+
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "User password has been changed successfully"}
+				c.Data["json"] = resp
+			} else {
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
+				c.Data["json"] = resp
+			}
 		} else {
-			logs.Error("Error hashing password ", errr.Error())
-		}
-
-		if err := models.UpdateUsersById(a); err == nil {
-			c.Ctx.Output.SetStatus(200)
-
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "User password has been changed successfully"}
-			c.Data["json"] = resp
-		} else {
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "User password change failed. " + err.Error()}
+			logs.Error("User not found")
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
 			c.Data["json"] = resp
 		}
 
@@ -744,10 +764,11 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 	logs.Info("Request is " + string(reqBody))
 	// logs.Info("Headers are "+string(reqHeaders[][]))
 
-	if a, err := models.GetCustomersById(id); err == nil {
+	req := requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(id))}
+	if a, err := functions.GetCustomer(&c.Controller, req); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
-		if custCred, err := models.GetCustomer_credentialsByCustomerId(a.CustomerId); err == nil {
+		if custCred, err := models.GetCustomer_credentialsByCustomerId(a.Result.CustomerId); err == nil {
 			logs.Info("Customer credentials found")
 			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
@@ -810,47 +831,54 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 
 	logs.Info("About to decrypt token")
 
-	if a, err := models.GetCustomersById(id); err == nil {
+	if a, err := functions.GetCustomer(&c.Controller, requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(id))}); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
-		if custCred, err := models.GetCustomer_credentialsByCustomerId(a.CustomerId); err == nil {
-			if err := bcrypt.CompareHashAndPassword([]byte(custCred.Password), []byte(v.OldPassword)); err != nil {
-				// If the two passwords don't match, return a 401 status
-				c.Data["json"] = err.Error()
+		if a.StatusCode == 200 {
+			if custCred, err := models.GetCustomer_credentialsByCustomerId(a.Result.CustomerId); err == nil {
+				if err := bcrypt.CompareHashAndPassword([]byte(custCred.Password), []byte(v.OldPassword)); err != nil {
+					// If the two passwords don't match, return a 401 status
+					c.Data["json"] = err.Error()
 
-				logs.Error(err.Error())
+					logs.Error(err.Error())
 
-				var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Old password does not match"}
-				c.Data["json"] = resp
+					var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Old password does not match"}
+					c.Data["json"] = resp
+
+				} else {
+					hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+
+					if errr == nil {
+						logs.Debug(hashedPassword)
+
+						custCred.Password = string(hashedPassword)
+
+						logs.Debug("Sending", v.NewPassword)
+
+						// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
+					} else {
+						logs.Error("Error hashing password ", errr.Error())
+					}
+
+					if err := models.UpdateCustomer_credentialsById(custCred); err == nil {
+						c.Ctx.Output.SetStatus(200)
+
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "Customer password has been changed successfully"}
+						c.Data["json"] = resp
+					} else {
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "Customer password reset failed. " + err.Error()}
+						c.Data["json"] = resp
+					}
+				}
 
 			} else {
-				hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
-
-				if errr == nil {
-					logs.Debug(hashedPassword)
-
-					custCred.Password = string(hashedPassword)
-
-					logs.Debug("Sending", v.NewPassword)
-
-					// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
-				} else {
-					logs.Error("Error hashing password ", errr.Error())
-				}
-
-				if err := models.UpdateCustomer_credentialsById(custCred); err == nil {
-					c.Ctx.Output.SetStatus(200)
-
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "Customer password has been changed successfully"}
-					c.Data["json"] = resp
-				} else {
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "Customer password reset failed. " + err.Error()}
-					c.Data["json"] = resp
-				}
+				logs.Error(err.Error())
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified customer"}
+				c.Data["json"] = resp
 			}
 		} else {
-			logs.Error(err.Error())
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified customer"}
+			logs.Error("Customer not found")
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified Customer"}
 			c.Data["json"] = resp
 		}
 
@@ -1097,7 +1125,8 @@ func (c *AuthenticationController) ResetPasswordLink() {
 
 	logs.Info("Received ", v.Email)
 
-	if a, err := models.GetUsersByUsername(v.Email); err == nil {
+	req := requestsDTOs.GetUserWithUsernameRequest{Username: v.Email}
+	if a, err := functions.GetUserWithUsername(&c.Controller, req); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
 		// hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
@@ -1105,7 +1134,7 @@ func (c *AuthenticationController) ResetPasswordLink() {
 		// logs.Debug(hashedPassword)
 		fmt.Printf("Value of v: %+v\n", a)
 
-		rawString := v.Email + "___" + a.Role.Role
+		rawString := v.Email + "___" + a.User.Role.Role
 
 		// ikey, _ := functions.GenerateKey()
 
@@ -1126,9 +1155,9 @@ func (c *AuthenticationController) ResetPasswordLink() {
 			logs.Debug("Message is ", v.Message)
 			logs.Debug("Subject is ", v.Subject)
 			logs.Debug("Links are ", v.Links)
-			logs.Debug("Sender is ", a.FullName)
+			logs.Debug("Sender is ", a.User.FullName)
 
-			namePlaceHolder := strings.Split(a.FullName, " | ")
+			namePlaceHolder := strings.Split(a.User.FullName, " | ")
 			name := strings.Join(namePlaceHolder, " ")
 			message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", name, -1)
 			logs.Info("Message with name is ", message_)
@@ -1143,7 +1172,7 @@ func (c *AuthenticationController) ResetPasswordLink() {
 
 			logs.Debug("Sending", message_)
 
-			go functions.SendEmailNew(a.Email, v.Subject, message_)
+			go functions.SendEmailNew(a.User.Email, v.Subject, message_)
 
 		} else {
 			logs.Error("Error validating token...", err.Error())
@@ -1185,7 +1214,8 @@ func (c *AuthenticationController) VerifyOTP() {
 	var q requestsDTOs.VerifyOtpDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	v, err := models.GetUsersByUsername(q.Username)
+	req := requestsDTOs.GetUserWithUsernameRequest{Username: q.Username}
+	v, err := functions.GetUserWithUsername(&c.Controller, req)
 	logs.Debug("Checking for username ", q.Username)
 
 	if err != nil {
@@ -1194,40 +1224,46 @@ func (c *AuthenticationController) VerifyOTP() {
 		c.Data["json"] = resp
 	} else {
 		// Get OTP
-		logs.Debug("Got user. Now checking for user in OTP table ", v.UserId, v.Email, v.FullName)
-		otp, err := models.VerifyUserOTP(v.UserId)
+		if v.StatusCode == 200 {
+			logs.Debug("Got user. Now checking for user in OTP table ", v.User.UserId, v.User.Email, v.User.FullName)
+			otp, err := models.VerifyUserOTP(v.User.UserId)
 
-		logs.Debug("User in OTP table ")
+			logs.Debug("User in OTP table ")
 
-		if err == nil {
-			if q.Password == otp.Code {
-				logs.Debug("OTP Passed")
-				logs.Debug("About to compare OTP expiry date...", otp.ExpiryDate, " with date now ", time.Now())
-				if otp.ExpiryDate.After(time.Now()) {
-					if otp.Status == 1 {
-						logs.Debug("OTP has been used already.")
-						var resp = responsesDTOs.UserResponseDTO{StatusCode: 407, User: nil, StatusDesc: "OTP has already been used."}
-						c.Data["json"] = resp
-					} else {
-						otp.Status = 1
-
-						if err := models.UpdateUserOtpById(otp); err == nil {
-							var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "OTP Verified successfully"}
+			if err == nil {
+				if q.Password == otp.Code {
+					logs.Debug("OTP Passed")
+					logs.Debug("About to compare OTP expiry date...", otp.ExpiryDate, " with date now ", time.Now())
+					if otp.ExpiryDate.After(time.Now()) {
+						if otp.Status == 1 {
+							logs.Debug("OTP has been used already.")
+							var resp = responsesDTOs.UserResponseDTO{StatusCode: 407, User: nil, StatusDesc: "OTP has already been used."}
 							c.Data["json"] = resp
 						} else {
-							logs.Error("Error is ", err.Error())
-							var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "Error occurred inserting record."}
-							c.Data["json"] = resp
+							otp.Status = 1
+
+							if err := models.UpdateUserOtpById(otp); err == nil {
+								var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "OTP Verified successfully"}
+								c.Data["json"] = resp
+							} else {
+								logs.Error("Error is ", err.Error())
+								var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "Error occurred inserting record."}
+								c.Data["json"] = resp
+							}
 						}
+					} else {
+						logs.Debug("OTP has expired. Time to enter OTP of 5 mins exeeded.")
+						var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "OTP Expired"}
+						c.Data["json"] = resp
 					}
 				} else {
-					logs.Debug("OTP has expired. Time to enter OTP of 5 mins exeeded.")
-					var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "OTP Expired"}
+					logs.Debug("OTPs do not match ")
+					var resp = responsesDTOs.UserResponseDTO{StatusCode: 402, User: nil, StatusDesc: "OTP Verification failed"}
 					c.Data["json"] = resp
 				}
 			} else {
-				logs.Debug("OTPs do not match ")
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: 402, User: nil, StatusDesc: "OTP Verification failed"}
+				logs.Debug("Error: ", err.Error(), " User not in OTP Table ")
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, User: nil, StatusDesc: "OTP Expired"}
 				c.Data["json"] = resp
 			}
 		} else {
@@ -1268,7 +1304,8 @@ func (c *AuthenticationController) ResendOTP() {
 	var q requestsDTOs.UsernameDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	v, err := models.GetUsersByUsername(q.Username)
+	req := requestsDTOs.GetUserWithUsernameRequest{Username: q.Username}
+	v, err := functions.GetUserWithUsername(&c.Controller, req)
 
 	if err != nil {
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: 604, User: nil, StatusDesc: "User cannot be found"}
@@ -1276,21 +1313,27 @@ func (c *AuthenticationController) ResendOTP() {
 		c.Data["json"] = resp
 	} else {
 		// Generate random number
-		randNum := functions.EncodeToString(6)
-		logs.Debug("Random number generated is ", randNum)
+		if v.StatusCode == 200 {
+			randNum := functions.EncodeToString(6)
+			logs.Debug("Random number generated is ", randNum)
 
-		expiryDate := time.Now().Local().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(5) + time.Second*time.Duration(0))
+			expiryDate := time.Now().Local().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(5) + time.Second*time.Duration(0))
 
-		otpModel := models.UserOtps{Code: randNum, UserId: v.UserId, Status: 2, DateCreated: time.Now(), DateModified: time.Now(), DateGenerated: time.Now(), ExpiryDate: expiryDate, Active: 1}
+			otpModel := models.UserOtps{Code: randNum, UserId: v.User.UserId, Status: 2, DateCreated: time.Now(), DateModified: time.Now(), DateGenerated: time.Now(), ExpiryDate: expiryDate, Active: 1}
 
-		if _, err := models.AddUserOtp(&otpModel); err == nil {
-			functions.SendEmail(v.Email, randNum)
+			if _, err := models.AddUserOtp(&otpModel); err == nil {
+				functions.SendEmail(v.User.Email, randNum)
 
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "Email sent successfully"}
-			c.Data["json"] = resp
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "Email sent successfully"}
+				c.Data["json"] = resp
+			} else {
+				logs.Error("Error inserting OTP...", err.Error())
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error sending email"}
+				c.Data["json"] = resp
+			}
 		} else {
-			logs.Error("Error inserting OTP...", err.Error())
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error sending email"}
+			logs.Error(err.Error())
+			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Unidentified user"}
 			c.Data["json"] = resp
 		}
 	}
@@ -1610,12 +1653,19 @@ func (c *AuthenticationController) VerifyCustomerToken() {
 				email = splitText[0]
 			}
 
-			if user, err := models.GetUsersByUsername(email); err == nil {
-				logs.Info("User found is ", user)
-				logs.Info("User was created on ", user.DateCreated)
-				statusCode = 200
-				message = "Successfully validated"
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: user, StatusDesc: message}
+			req := requestsDTOs.GetUserWithUsernameRequest{Username: email}
+
+			if user, err := functions.GetUserWithUsername(&c.Controller, req); err == nil {
+				if user.StatusCode == 200 {
+					logs.Info("User found is ", user)
+					logs.Info("User was created on ", user.User.DateCreated)
+					statusCode = 200
+					message = "Successfully validated"
+				} else {
+					statusCode = 708
+					message = "user not found"
+				}
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: user.User, StatusDesc: message}
 				c.Data["json"] = resp
 			} else {
 				statusCode = 708
