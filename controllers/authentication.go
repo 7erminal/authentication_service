@@ -200,6 +200,7 @@ func (c *AuthenticationController) LoginToken() {
 						ExpiresAt:    t,
 						DateCreated:  time.Now(),
 						DateModified: time.Now(),
+						LastUsedAt:   time.Now(),
 					}
 					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
 						statusCode = 200
@@ -312,6 +313,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 						ExpiresAt:   time.Unix(accessExpiryTime, 0),
 						IPAddress:   c.Ctx.Request.RemoteAddr,
 						DateCreated: time.Now(),
+						LastUsedAt:  time.Now(),
 					}
 
 					if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
@@ -439,7 +441,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 					}
 					logs.Info("Old tokens revoked successfully. Generating new token...")
 					t := time.Unix(expiryTime, 0)
-					accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
+					accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now(), LastUsedAt: time.Now()}
 					if _, err := models.AddCustomer_access_tokens(accessTokenObj); err == nil {
 						logs.Info("Access token added successfully")
 						statusCode = 200
@@ -546,6 +548,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 						ExpiresAt:   time.Unix(accessExpiryTime, 0),
 						Revoked:     false,
 						DateCreated: time.Now(),
+						LastUsedAt:  time.Now(),
 					}
 
 					if _, err := models.AddCustomer_access_tokens(&accessTokenObj); err != nil {
