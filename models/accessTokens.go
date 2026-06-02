@@ -20,7 +20,7 @@ type AccessTokens struct {
 	ExpiresAt     time.Time `orm:"type(datetime)"`
 	Revoked       bool
 	IPAddress     string    `orm:"size(80);column(ip_address)"`
-	LastUsedAt    time.Time `orm:"type(datetime)"`
+	LastUsedAt    time.Time `orm:"type(datetime);null"`
 }
 
 func init() {
