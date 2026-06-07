@@ -86,8 +86,8 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 			logs.Info("Valid token...")
 			if tokenObj, err := models.GetAccessTokensByToken(token_); err == nil {
 				logs.Info("Token fetched is ", tokenObj.Token)
-				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-				logs.Info("Time now is ", time.Now())
+				logs.Info("Token expiry is ", tokenObj.ExpiresAt.UTC())
+				logs.Info("Time now is ", time.Now().UTC())
 
 				if userResp, err := GetUser(&beego.Controller{}, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(tokenObj.User))}); err == nil {
 					logs.Info("User response is ", userResp)
@@ -108,7 +108,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 							return resp, nil
 						}
 					} else {
-						logs.Error("Error fetching user for token: ", err.Error())
+						logs.Error("Error fetching user for token: ", userResp.StatusDesc)
 						resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 						return resp, err
 					}
@@ -170,7 +170,7 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 			logs.Info("Valid token...")
 			if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
 				logs.Info("Token fetched is ", tokenObj.Token)
-				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
+				logs.Info("Token expiry is ", tokenObj.ExpiresAt.UTC())
 				logs.Info("Time now is ", time.Now().UTC())
 				customerJson, err := json.Marshal(tokenObj.Customer)
 				if err != nil {
@@ -198,7 +198,7 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 							return resp, nil
 						}
 					} else {
-						logs.Error("Error fetching customer for token: ", err.Error())
+						logs.Error("Error fetching customer for token: ", customerResp.StatusDesc)
 						resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
 						return resp, err
 					}
