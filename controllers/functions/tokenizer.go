@@ -87,7 +87,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 			if tokenObj, err := models.GetAccessTokensByToken(token_); err == nil {
 				logs.Info("Token fetched is ", tokenObj.Token)
 				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-				logs.Info("Time now is ", time.Now().UTC())
+				logs.Info("Time now is ", time.Now())
 				logs.Info("Time now server is ", time.Now())
 
 				if userResp, err := GetUser(&beego.Controller{}, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(tokenObj.User))}); err == nil {
@@ -99,7 +99,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 						} else {
 							logs.Info("User for token is ", string(userJson))
 						}
-						if tokenObj.ExpiresAt.After(time.Now().UTC()) {
+						if tokenObj.ExpiresAt.After(time.Now()) {
 							logs.Info("Token is valid")
 							resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: userResp.User}
 							return resp, nil
@@ -171,8 +171,8 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 			logs.Info("Valid token...")
 			if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
 				logs.Info("Token fetched is ", tokenObj.Token)
-				logs.Info("Token expiry is ", tokenObj.ExpiresAt.UTC())
-				logs.Info("Time now is ", time.Now().UTC())
+				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
+				logs.Info("Time now is ", time.Now())
 				customerJson, err := json.Marshal(tokenObj.Customer)
 				if err != nil {
 					logs.Error("Error marshalling customer to JSON: ", err.Error())
@@ -189,7 +189,7 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 							logs.Info("Customer for token is ", string(customerJson))
 						}
 
-						if tokenObj.ExpiresAt.After(time.Now().UTC()) {
+						if tokenObj.ExpiresAt.After(time.Now()) {
 							logs.Info("Token is valid")
 							resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: customerResp.Result}
 							return resp, nil
