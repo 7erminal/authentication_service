@@ -20,6 +20,16 @@ func containsIgnoreCase(s, substr string) bool {
 		strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
+func setControllerJSON(c *beego.Controller, value interface{}) {
+	if c == nil {
+		return
+	}
+	if c.Data == nil {
+		c.Data = map[interface{}]interface{}{}
+	}
+	c.Data["json"] = value
+}
+
 func GetUser(c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTOs.UserResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
 
@@ -40,12 +50,14 @@ func GetUser(c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTO
 	res, err := client.SendRequest()
 	if err != nil {
 		logs.Error("client.Error: %v", err)
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
 	}
 	defer res.Body.Close()
 	read, err := io.ReadAll(res.Body)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
 	}
 
 	var prettyJSON bytes.Buffer
@@ -57,8 +69,11 @@ func GetUser(c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTO
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responsesDTOs.UserResponseDTO
-	json.Unmarshal(read, &data)
-	c.Data["json"] = data
+	if err := json.Unmarshal(read, &data); err != nil {
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
+	}
+	setControllerJSON(c, data)
 
 	logs.Info("Resp is ", data)
 	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
@@ -86,12 +101,14 @@ func GetUserWithUsername(c *beego.Controller, req requestsDTOs.GetUserWithUserna
 	res, err := client.SendRequest()
 	if err != nil {
 		logs.Error("client.Error: %v", err)
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
 	}
 	defer res.Body.Close()
 	read, err := io.ReadAll(res.Body)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
 	}
 
 	var prettyJSON bytes.Buffer
@@ -103,8 +120,11 @@ func GetUserWithUsername(c *beego.Controller, req requestsDTOs.GetUserWithUserna
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responsesDTOs.UserResponseDTO
-	json.Unmarshal(read, &data)
-	c.Data["json"] = data
+	if err := json.Unmarshal(read, &data); err != nil {
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
+	}
+	setControllerJSON(c, data)
 
 	logs.Info("Resp is ", data)
 	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
@@ -132,12 +152,14 @@ func GetCustomer(c *beego.Controller, req requestsDTOs.GetCustomerRequest) (resp
 	res, err := client.SendRequest()
 	if err != nil {
 		logs.Error("client.Error: %v", err)
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.CustomerResponseDTO{}, err
 	}
 	defer res.Body.Close()
 	read, err := io.ReadAll(res.Body)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.CustomerResponseDTO{}, err
 	}
 
 	var prettyJSON bytes.Buffer
@@ -149,8 +171,11 @@ func GetCustomer(c *beego.Controller, req requestsDTOs.GetCustomerRequest) (resp
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responsesDTOs.CustomerResponseDTO
-	json.Unmarshal(read, &data)
-	c.Data["json"] = data
+	if err := json.Unmarshal(read, &data); err != nil {
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.CustomerResponseDTO{}, err
+	}
+	setControllerJSON(c, data)
 
 	logs.Info("Resp is ", data)
 	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
@@ -178,12 +203,14 @@ func GetCustomerWithUsername(c *beego.Controller, req requestsDTOs.GetCustomerWi
 	res, err := client.SendRequest()
 	if err != nil {
 		logs.Error("client.Error: %v", err)
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.CustomerResponseDTO{}, err
 	}
 	defer res.Body.Close()
 	read, err := io.ReadAll(res.Body)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.CustomerResponseDTO{}, err
 	}
 
 	var prettyJSON bytes.Buffer
@@ -195,8 +222,11 @@ func GetCustomerWithUsername(c *beego.Controller, req requestsDTOs.GetCustomerWi
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responsesDTOs.CustomerResponseDTO
-	json.Unmarshal(read, &data)
-	c.Data["json"] = data
+	if err := json.Unmarshal(read, &data); err != nil {
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.CustomerResponseDTO{}, err
+	}
+	setControllerJSON(c, data)
 
 	logs.Info("Resp is ", data)
 	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
@@ -215,6 +245,9 @@ func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPassword
 		host,
 		"/v1/users/password/"+strconv.FormatInt(req.UserId, 10),
 		api.PUT)
+	if request.InterfaceParams == nil {
+		request.InterfaceParams = map[string]interface{}{}
+	}
 
 	request.InterfaceParams["UserId"] = req.UserId
 	request.InterfaceParams["OldPassword"] = req.OldPassword
@@ -228,12 +261,14 @@ func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPassword
 	res, err := client.SendRequest()
 	if err != nil {
 		logs.Error("client.Error: %v", err)
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
 	}
 	defer res.Body.Close()
 	read, err := io.ReadAll(res.Body)
 	if err != nil {
-		c.Data["json"] = err.Error()
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
 	}
 
 	var prettyJSON bytes.Buffer
@@ -245,8 +280,11 @@ func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPassword
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
 	var data responsesDTOs.UserResponseDTO
-	json.Unmarshal(read, &data)
-	c.Data["json"] = data
+	if err := json.Unmarshal(read, &data); err != nil {
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.UserResponseDTO{}, err
+	}
+	setControllerJSON(c, data)
 
 	logs.Info("Resp is ", data)
 	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)

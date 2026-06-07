@@ -90,6 +90,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 				logs.Info("Time now is ", time.Now())
 
 				if userResp, err := GetUser(&beego.Controller{}, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(tokenObj.User))}); err == nil {
+					logs.Info("User response is ", userResp)
 					if userResp.StatusCode == 200 {
 						userJson, err := json.Marshal(userResp.User)
 						if err != nil {
