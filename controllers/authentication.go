@@ -301,7 +301,13 @@ func (c *AuthenticationController) RefreshAccessToken() {
 				if userResp.StatusCode == 200 {
 					// Create new access token
 					logs.Info("Refresh token is valid. Generating new access token...")
-					accessToken, accessExpiryTime, err := functions.CreateAccessToken(userResp.User.Username)
+					username := userResp.User.Username
+					if username == "" {
+						logs.Error("Username is empty for user ", userResp.User.UserId)
+						username = userResp.User.Email
+						logs.Info("Using email as username ", username)
+					}
+					accessToken, accessExpiryTime, err := functions.CreateAccessToken(username)
 					if err != nil {
 						c.Data["json"] = err.Error()
 						c.ServeJSON()
