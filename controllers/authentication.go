@@ -1485,6 +1485,7 @@ func (c *AuthenticationController) VerifyActivationCode() {
 // @Failure 403 body is empty
 // @router /token/check [post]
 func (c *AuthenticationController) CheckTokenExpiry() {
+	logs.Info("Received request to check token expiry")
 	var q requestsDTOs.StringRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
