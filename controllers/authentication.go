@@ -195,6 +195,7 @@ func (c *AuthenticationController) LoginToken() {
 
 					// time.Now().UTC().Add(time.Hour * 1).Unix()
 					t := time.Unix(expiryTime, 0)
+					logs.Info("Time object created is ", t)
 					tokenObj := models.AccessTokens{
 						User:         a.User.UserId,
 						Token:        token,
