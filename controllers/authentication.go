@@ -175,8 +175,8 @@ func (c *AuthenticationController) LoginToken() {
 
 				logs.Info("Successfully validated credentials")
 
-				// Create access token (15 minutes expiry)
-				token, expiryTime, err := functions.CreateAccessToken(v.Username)
+				// Create access token
+				token, _, err := functions.CreateAccessToken(v.Username)
 
 				logs.Info("access Token created is ", token)
 
@@ -193,7 +193,7 @@ func (c *AuthenticationController) LoginToken() {
 						logs.Error("Error revoking old tokens. ", err.Error())
 					}
 
-					t := time.Unix(expiryTime, 0)
+					t := time.Now().Add(time.Hour)
 					tokenObj := models.AccessTokens{
 						User:         a.User.UserId,
 						Token:        token,
@@ -425,7 +425,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 			} else {
 				c.Ctx.Output.SetStatus(200)
 
-				token, expiryTime, err := functions.CreateAccessToken(v.Username)
+				token, _, err := functions.CreateAccessToken(v.Username)
 
 				logs.Info("Token created is ", token)
 
@@ -440,7 +440,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 						logs.Error(statusMessage)
 					}
 					logs.Info("Old tokens revoked successfully. Generating new token...")
-					t := time.Unix(expiryTime, 0)
+					t := time.Now().Add(time.Hour)
 					accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now(), LastUsedAt: time.Now()}
 					if _, err := models.AddCustomer_access_tokens(accessTokenObj); err == nil {
 						logs.Info("Access token added successfully")
