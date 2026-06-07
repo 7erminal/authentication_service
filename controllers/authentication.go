@@ -196,14 +196,14 @@ func (c *AuthenticationController) LoginToken() {
 					// time.Now().UTC().Add(time.Hour * 1).Unix()
 					t := time.Unix(expiryTime, 0)
 					logs.Info("Time object created is ", t)
-					logs.Info("Time now is ", time.Now())
+					logs.Info("Time now is ", time.Now().UTC())
 					tokenObj := models.AccessTokens{
 						User:         a.User.UserId,
 						Token:        token,
 						ExpiresAt:    t,
-						DateCreated:  time.Now(),
-						DateModified: time.Now(),
-						LastUsedAt:   time.Now(),
+						DateCreated:  time.Now().UTC(),
+						DateModified: time.Now().UTC(),
+						LastUsedAt:   time.Now().UTC(),
 					}
 					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
 						statusCode = 200
@@ -229,8 +229,8 @@ func (c *AuthenticationController) LoginToken() {
 							IPAddress:    ipAddress,
 							UserAgent:    "", //userAgent,
 							AccessToken:  accessTokenObj,
-							DateCreated:  time.Now(),
-							DateModified: time.Now(),
+							DateCreated:  time.Now().UTC(),
+							DateModified: time.Now().UTC(),
 						}
 
 						if _, err := models.AddRefreshTokens(refreshTokenObj); err != nil {
@@ -321,8 +321,8 @@ func (c *AuthenticationController) RefreshAccessToken() {
 						Token:       accessToken,
 						ExpiresAt:   time.Unix(accessExpiryTime, 0),
 						IPAddress:   c.Ctx.Request.RemoteAddr,
-						DateCreated: time.Now(),
-						LastUsedAt:  time.Now(),
+						DateCreated: time.Now().UTC(),
+						LastUsedAt:  time.Now().UTC(),
 					}
 
 					if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
