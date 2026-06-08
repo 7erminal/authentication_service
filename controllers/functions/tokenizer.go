@@ -99,7 +99,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 						} else {
 							logs.Info("User for token is ", string(userJson))
 						}
-						if tokenObj.ExpiresAt.After(time.Now().UTC()) {
+						if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
 							logs.Info("Token is valid")
 							resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: userResp.User}
 							return resp, nil
@@ -189,7 +189,7 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 							logs.Info("Customer for token is ", string(customerJson))
 						}
 
-						if tokenObj.ExpiresAt.After(time.Now().UTC()) {
+						if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
 							logs.Info("Token is valid")
 							resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: customerResp.Result}
 							return resp, nil

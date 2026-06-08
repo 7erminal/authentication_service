@@ -296,7 +296,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetRefreshTokensByToken(refreshToken); err == nil {
 		logs.Info("Refresh token found in database ", refreshTokenObj.Token)
-		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
+		if refreshTokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() && !refreshTokenObj.Revoked {
 			if userResp, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(refreshTokenObj.User))}); err == nil {
 				if userResp.StatusCode == 200 {
 					// Create new access token
@@ -319,7 +319,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 					accessTokenObj := models.AccessTokens{
 						User:        refreshTokenObj.User,
 						Token:       accessToken,
-						ExpiresAt:   time.Unix(accessExpiryTime, 0),
+						ExpiresAt:   time.Unix(accessExpiryTime, 0).UTC(),
 						IPAddress:   c.Ctx.Request.RemoteAddr,
 						DateCreated: time.Now().UTC(),
 						LastUsedAt:  time.Now().UTC(),
