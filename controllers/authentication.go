@@ -317,12 +317,13 @@ func (c *AuthenticationController) RefreshAccessToken() {
 					logs.Info("New access token generated is ", accessToken)
 
 					accessTokenObj := models.AccessTokens{
-						User:        refreshTokenObj.User,
-						Token:       accessToken,
-						ExpiresAt:   time.Unix(accessExpiryTime, 0).UTC(),
-						IPAddress:   c.Ctx.Request.RemoteAddr,
-						DateCreated: time.Now().UTC(),
-						LastUsedAt:  time.Now().UTC(),
+						User:         refreshTokenObj.User,
+						Token:        accessToken,
+						ExpiresAt:    time.Unix(accessExpiryTime, 0).UTC(),
+						IPAddress:    c.Ctx.Request.RemoteAddr,
+						DateCreated:  time.Now().UTC(),
+						DateModified: time.Now().UTC(),
+						LastUsedAt:   time.Now().UTC(),
 					}
 
 					if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
