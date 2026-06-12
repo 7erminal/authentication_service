@@ -326,6 +326,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 					}
 
 					if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
+						logs.Error("Error adding access token ", err.Error())
 						c.Data["json"] = err.Error()
 						c.ServeJSON()
 						return
