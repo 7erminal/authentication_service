@@ -19,7 +19,7 @@ spec:
         - name: acr-pull-secret
       containers:
         - name: naki-authentication-service
-          image: nakiacrplatform.azurecr.io/samples/naki:naki-authentication-service-12
+          image: nakiacrplatform.azurecr.io/samples/naki:naki-authentication-service-13
           imagePullPolicy: Always
           ports:
             - name: http

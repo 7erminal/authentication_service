@@ -41,6 +41,8 @@ func init() {
 	// 2. Register the driver name
 	orm.RegisterDriver("postgres", orm.DRPostgres)
 
+	fmt.Printf("Database credentials are: user=%s, host=%s, port=%s, dbName=%s\n", user, host, port, dbName)
+
 	// 3. Construct connection string (handle special characters in password)
 	dataSource := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=require",
