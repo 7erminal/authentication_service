@@ -8,7 +8,7 @@ data:
   ENV: "production"
   DB_HOST: "postgres-platform.nakilink.postgres.database.azure.com"
   DB_PORT: "5432"
-  DB_NAME: "auth"
+  DB_NAME: "auth_test"
   DB_SSLMODE: "require"
   JWT_ACCESS_TOKEN_TTL: "3600"
   JWT_REFRESH_TOKEN_TTL: "2592000"
