@@ -43,7 +43,7 @@ func init() {
 
 	// 3. Construct connection string (handle special characters in password)
 	dataSource := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		"postgres://%s:%s@%s:%s/%s?sslmode=require",
 		user, url.QueryEscape(pass), host, port, dbName,
 	)
 
