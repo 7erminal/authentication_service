@@ -37,6 +37,11 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to fetch configuration: %v", err))
 	}
+	pgTest, err := beego.AppConfig.String("pgtest")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to fetch configuration: %v", err))
+	}
+	logs.Info("Postgres test value is: ", pgTest)
 
 	// 2. Register the driver name
 	orm.RegisterDriver("postgres", orm.DRPostgres)
