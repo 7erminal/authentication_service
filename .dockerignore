@@ -1,0 +1,13 @@
+.git
+.gitignore
+.github
+.vscode
+*.log
+logs/
+bin/
+tmp/
+node_modules/
+coverage/
+.DS_Store
+k8s/
+DBBackups/

@@ -12,6 +12,7 @@ require (
 require (
 	ariga.io/atlas-go-sdk v0.7.2 // indirect
 	github.com/alecthomas/kong v1.13.0 // indirect
+	github.com/lib/pq v1.12.3 // indirect
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect

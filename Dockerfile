@@ -1,34 +1,49 @@
-# Start from the official Golang image for building
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
-WORKDIR /usr/app
+WORKDIR /src
 
-# Install git for go mod and beego tools
-RUN apk add --no-cache git
+RUN apk add --no-cache git ca-certificates
 
-# Copy go mod and sum files
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the source code
 COPY . .
 
-# Build the Beego application
-RUN go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/authentication_service .
 
-# Use a minimal image for running
-FROM alpine:latest
+FROM alpine:3.20
 
-WORKDIR /usr/app
+WORKDIR /app
 
-# Install ca-certificates for HTTPS
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates tzdata \
+	&& addgroup -S appgroup \
+	&& adduser -S appuser -G appgroup \
+	&& mkdir -p /logs /app/conf /app/swagger \
+	&& chown -R appuser:appgroup /logs /app
 
-# Copy the built binary from builder
-COPY --from=builder /usr/app/main .
+COPY --from=builder /out/authentication_service /app/authentication_service
+COPY conf /app/conf
+COPY swagger /app/swagger
 
-# Expose the port your Beego app listens on (default 8080)
-EXPOSE 8080
+COPY <<'EOF' /app/entrypoint.sh
+#!/bin/sh
+set -eu
 
-# Run the application
-CMD ["./main"]
+if [ -n "${APP_HTTP_PORT:-}" ]; then
+  export BEEGO_HTTPPORT="${APP_HTTP_PORT}"
+fi
+
+if [ -n "${BEEGO_RUNMODE:-}" ]; then
+  export BEEGO_RUNMODE
+fi
+
+exec /app/authentication_service
+EOF
+
+RUN chmod +x /app/entrypoint.sh
+
+USER appuser
+
+EXPOSE 5080
+
+ENTRYPOINT ["/app/entrypoint.sh"]

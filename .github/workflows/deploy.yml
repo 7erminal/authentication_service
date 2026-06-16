@@ -5,15 +5,15 @@ name: Go
 
 on:
   push:
-    branches: [ "ecommerce" ]
+    branches: [ "naki" ]
   pull_request:
-    branches: [ "ecommerce" ]
+    branches: [ "naki" ]
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
-    environment: ecommerce
+    environment: naki
     steps:
     - uses: actions/checkout@v4
 
