@@ -14,7 +14,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func init() {
+func setup() {
+	fmt.Println("Setting up the database connection...")
 	// 1. Fetch values from app.conf
 	// val, _ := beego.AppConfig.GetSection("default")
 	user, err := beego.AppConfig.String("pguser")
@@ -65,6 +66,8 @@ func main() {
 	// 	logs.Error("%s", err)
 	// }
 	// orm.RegisterDataBase("default", "mysql", sqlConn)
+	setup()
+
 	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
