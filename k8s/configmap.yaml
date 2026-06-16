@@ -4,8 +4,17 @@ metadata:
   name: naki-authentication-config
   namespace: naki
 data:
+  PORT: "8080"
+  ENV: "production"
   DB_HOST: "postgres-platform.nakilink.postgres.database.azure.com"
   DB_PORT: "5432"
   DB_NAME: "auth"
+  DB_SSLMODE: "require"
+  JWT_ACCESS_TOKEN_TTL: "3600"
+  JWT_REFRESH_TOKEN_TTL: "2592000"
+  OTP_TTL: "600"
+  OTP_LENGTH: "6"
+  MNOTIFY_API_URL: "https://api.mnotify.com/api/sms/quick"
+  SMS_SENDER_ID: "NakiAuth"
   APP_HTTP_PORT: "5080"
   BEEGO_RUNMODE: "prod"
