@@ -71,6 +71,12 @@ func main() {
 		logs.Error("%s", err)
 	}
 	logs.Info("Postgres test ", pgTest)
+
+	custUrl, err := beego.AppConfig.String("customerBaseUrl")
+	if err != nil {
+		logs.Error("%s", err)
+	}
+	logs.Info("Customer Base URL is ", custUrl)
 	setup()
 
 	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
