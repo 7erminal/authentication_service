@@ -96,6 +96,8 @@ func main() {
 	logs.Info("Customer Base URL is ", custUrl)
 	setup()
 
+	logs.Info("Starting Authentication Service...")
+
 	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
