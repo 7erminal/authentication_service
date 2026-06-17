@@ -66,6 +66,11 @@ func main() {
 	// 	logs.Error("%s", err)
 	// }
 	// orm.RegisterDataBase("default", "mysql", sqlConn)
+	pgTest, err := beego.AppConfig.String("pgtest")
+	if err != nil {
+		logs.Error("%s", err)
+	}
+	logs.Info("Postgres test ", pgTest)
 	setup()
 
 	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
