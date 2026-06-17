@@ -86,6 +86,17 @@ func main() {
 	// 	logs.Error("%s", err)
 	// }
 	// orm.RegisterDataBase("default", "mysql", sqlConn)
+	logs.SetLogger(logs.AdapterConsole)
+
+	// Verify conf is loading
+	appname, err := beego.AppConfig.String("appname")
+	if err != nil {
+		logs.Error("%s", err)
+	}
+	logs.Info("Config file path: %s", appname)
+	logs.Info("HTTP port from conf: %d", beego.BConfig.Listen.HTTPPort)
+	logs.Info("pgtest: %s", func() string { v, _ := beego.AppConfig.String("pgtest"); return v }())
+
 	pgTest, err := beego.AppConfig.String("pgtest")
 	if err != nil {
 		logs.Error("%s", err)
@@ -102,8 +113,6 @@ func main() {
 	logs.Info("Starting Authentication Service...")
 
 	// logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
-
-	logs.SetLogger(logs.AdapterConsole)
 
 	logs.Info("Logger set. Setting CORS...")
 
