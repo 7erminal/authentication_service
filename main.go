@@ -74,7 +74,10 @@ func setup() {
 
 	// 4. Register the default database alias
 	// Max connection pool limits can be configured here as the 4th/5th optional arguments
-	orm.RegisterDataBase("default", "postgres", dataSource)
+	dberr := orm.RegisterDataBase("default", "postgres", dataSource)
+	if dberr != nil {
+		panic(fmt.Sprintf("Failed to register database: %v", dberr))
+	}
 }
 
 func main() {
@@ -112,6 +115,8 @@ func main() {
 		beego.BConfig.WebConfig.DirectoryIndex = true
 		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	}
+
+	logs.Info("Initializing server...")
 
 	orm.Debug = true
 	beego.Run()
