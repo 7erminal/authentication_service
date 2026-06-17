@@ -4,6 +4,7 @@ import (
 	_ "authentication_service/routers"
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
@@ -46,6 +47,22 @@ func setup() {
 
 	// 2. Register the driver name
 	orm.RegisterDriver("postgres", orm.DRPostgres)
+
+	if user == "" {
+		user = os.Getenv("DB_USER")
+	}
+	if pass == "" {
+		pass = os.Getenv("DB_PASSWORD")
+	}
+	if host == "" {
+		host = os.Getenv("DB_HOST")
+	}
+	if port == "" {
+		port = os.Getenv("DB_PORT")
+	}
+	if dbName == "" {
+		dbName = os.Getenv("DB_NAME")
+	}
 
 	fmt.Printf("Database credentials are: user=%s, host=%s, port=%s, dbName=%s\n", user, host, port, dbName)
 
