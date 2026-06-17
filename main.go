@@ -88,6 +88,8 @@ func main() {
 	// orm.RegisterDataBase("default", "mysql", sqlConn)
 	logs.SetLogger(logs.AdapterConsole)
 
+	beego.LoadAppConfig("ini", "/app/conf/app.conf")
+
 	// Verify conf is loading
 	appname, err := beego.AppConfig.String("appname")
 	if err != nil {
