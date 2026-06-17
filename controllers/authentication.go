@@ -1338,11 +1338,11 @@ func (c *AuthenticationController) ResendOTP() {
 			if _, err := models.AddUserOtp(&otpModel); err == nil {
 				functions.SendEmail(v.User.Email, randNum)
 
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "Email sent successfully"}
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: nil, StatusDesc: "OTP sent successfully"}
 				c.Data["json"] = resp
 			} else {
 				logs.Error("Error inserting OTP...", err.Error())
-				var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error sending email"}
+				var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error sending OTP"}
 				c.Data["json"] = resp
 			}
 		} else {
@@ -1369,7 +1369,8 @@ func (c *AuthenticationController) SendActivationCode() {
 	// Generate random number
 	randNum := functions.EncodeToString(6)
 	// set OTP to 1111 for tests
-	randNum = "1111"
+	logs.Debug("Random number generated before twist is ", randNum)
+	randNum = "111000"
 	logs.Debug("Random number generated is ", randNum)
 	logs.Debug("Mobile number in request is ", q.MobileNumber)
 	proceed := false
@@ -1402,7 +1403,7 @@ func (c *AuthenticationController) SendActivationCode() {
 			// Function to send Code via sms
 			// functions.SendEmail(v.Email, randNum)
 
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "SUCCESS", StatusDesc: "Email sent successfully"}
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "SUCCESS", StatusDesc: "OTP sent successfully"}
 			c.Data["json"] = resp
 		} else {
 			logs.Error("Error inserting Activation code...", err.Error())

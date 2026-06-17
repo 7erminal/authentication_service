@@ -18,3 +18,4 @@ data:
   SMS_SENDER_ID: "NakiAuth"
   APP_HTTP_PORT: "5080"
   BEEGO_RUNMODE: "prod"
+  CUSTOMER_BASE_URL: "http://naki-customer-management-service"
