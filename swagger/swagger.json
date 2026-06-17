@@ -15,6 +15,72 @@
     },
     "basePath": "/v1",
     "paths": {
+        "/auth/add-customer-credential": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "create Customer_credentials\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Post",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Customer_credentials content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.CustomerCredentialRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} models.Customer_credentials"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/change-customer-password/{id}": {
+            "put": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Change customer password\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Change Customer Password",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Change password content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.ChangePassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/auth/change-password/{id}": {
             "put": {
                 "tags": [
@@ -239,6 +305,68 @@
                 }
             }
         },
+        "/auth/refresh/customer/token": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Refresh Access Token\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Refresh Customer Access Token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AuthenticationDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/refresh/user/token": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Refresh Access Token\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Refresh Access Token",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Authentication content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AuthenticationDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/auth/resend-otp": {
             "post": {
                 "tags": [
@@ -262,6 +390,44 @@
                         "description": "",
                         "schema": {
                             "$ref": "#/definitions/responsesDTOs.UserResponseDTO"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/auth/reset-customer-password/{id}": {
+            "put": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "Reset customer password\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Reset Customer Password",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Change password content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestsDTOs.ResetPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserResponseDTO"
                         }
                     },
                     "403": {
@@ -494,6 +660,44 @@
                 }
             }
         },
+        "/auth/update-customer-credential/{customerId}": {
+            "put": {
+                "tags": [
+                    "auth"
+                ],
+                "description": "update the Customer_credentials\n\u003cbr\u003e",
+                "operationId": "AuthenticationController.Put",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The id you want to update",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Customer_credentials content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.CustomerCredentialUpdateRequestDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Customer_credentials"
+                        }
+                    },
+                    "403": {
+                        "description": ":customerId is not int"
+                    }
+                }
+            }
+        },
         "/auth/validate-customer-credentials/token": {
             "post": {
                 "tags": [
@@ -663,88 +867,8 @@
                 }
             }
         },
-        "models.Branches": {
-            "title": "Branches",
-            "type": "object",
-            "properties": {
-                "Active": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Branch": {
-                    "type": "string"
-                },
-                "BranchId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Country": {
-                    "$ref": "#/definitions/models.Countries"
-                },
-                "CreatedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "DateCreated": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "DateModified": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "Location": {
-                    "type": "string"
-                },
-                "ModifiedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "PhoneNumber": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Countries": {
-            "title": "Countries",
-            "type": "object",
-            "properties": {
-                "Country": {
-                    "type": "string"
-                },
-                "CountryCode": {
-                    "type": "string"
-                },
-                "CountryId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "CreatedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "DateCreated": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "DateModified": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "DefaultCurrency": {
-                    "$ref": "#/definitions/models.Currencies"
-                },
-                "Description": {
-                    "type": "string"
-                },
-                "ModifiedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
-        "models.Currencies": {
-            "title": "Currencies",
+        "models.Customer_credentials": {
+            "title": "Customer_credentials",
             "type": "object",
             "properties": {
                 "Active": {
@@ -755,10 +879,7 @@
                     "type": "integer",
                     "format": "int64"
                 },
-                "Currency": {
-                    "type": "string"
-                },
-                "CurrencyId": {
+                "Customer": {
                     "type": "integer",
                     "format": "int64"
                 },
@@ -770,11 +891,21 @@
                     "type": "string",
                     "format": "datetime"
                 },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
                 "ModifiedBy": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "Symbol": {
+                "Password": {
+                    "type": "string"
+                },
+                "Pin": {
+                    "type": "string"
+                },
+                "Username": {
                     "type": "string"
                 }
             }
@@ -782,130 +913,6 @@
         "models.OAuthAuthentication": {
             "title": "OAuthAuthentication",
             "type": "object"
-        },
-        "models.Roles": {
-            "title": "Roles",
-            "type": "object",
-            "properties": {
-                "Active": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "CreatedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "DateCreated": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "DateModified": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "Description": {
-                    "type": "string"
-                },
-                "ModifiedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Role": {
-                    "type": "string"
-                },
-                "RoleId": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
-        },
-        "models.Shops": {
-            "title": "Shops",
-            "type": "object",
-            "properties": {
-                "Active": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "CreatedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "DateCreated": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "DateModified": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "Image": {
-                    "type": "string"
-                },
-                "ModifiedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "ShopAssistantName": {
-                    "type": "string"
-                },
-                "ShopAssistantNumber": {
-                    "type": "string"
-                },
-                "ShopDescription": {
-                    "type": "string"
-                },
-                "ShopId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "ShopName": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.UserExtraDetails": {
-            "title": "UserExtraDetails",
-            "type": "object",
-            "properties": {
-                "Active": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Branch": {
-                    "$ref": "#/definitions/models.Branches"
-                },
-                "CreatedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "DateCreated": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "DateModified": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "ModifiedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Nickname": {
-                    "type": "string"
-                },
-                "Shop": {
-                    "$ref": "#/definitions/models.Shops"
-                },
-                "User": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "UserDetailsId": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
         },
         "models.UserResponseDTO": {
             "title": "UserResponseDTO",
@@ -951,85 +958,13 @@
                 }
             }
         },
-        "models.Users": {
-            "title": "Users",
-            "type": "object",
-            "properties": {
-                "Active": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Address": {
-                    "type": "string"
-                },
-                "CreatedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "DateCreated": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "DateModified": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "Dob": {
-                    "type": "string",
-                    "format": "datetime"
-                },
-                "Email": {
-                    "type": "string"
-                },
-                "FullName": {
-                    "type": "string"
-                },
-                "Gender": {
-                    "type": "string"
-                },
-                "IdNumber": {
-                    "type": "string"
-                },
-                "IdType": {
-                    "type": "string"
-                },
-                "ImagePath": {
-                    "type": "string"
-                },
-                "IsVerified": {
-                    "type": "boolean"
-                },
-                "MaritalStatus": {
-                    "type": "string"
-                },
-                "ModifiedBy": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Password": {
-                    "type": "string"
-                },
-                "PhoneNumber": {
-                    "type": "string"
-                },
-                "Role": {
-                    "$ref": "#/definitions/models.Roles"
-                },
-                "UserDetails": {
-                    "$ref": "#/definitions/models.UserExtraDetails"
-                },
-                "UserId": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "UserType": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Username": {
-                    "type": "string"
-                }
-            }
+        "requests.CustomerCredentialRequestDTO": {
+            "title": "CustomerCredentialRequestDTO",
+            "type": "object"
+        },
+        "requests.CustomerCredentialUpdateRequestDTO": {
+            "title": "CustomerCredentialUpdateRequestDTO",
+            "type": "object"
         },
         "requestsDTOs.ChangePassword": {
             "title": "ChangePassword",
@@ -1168,6 +1103,122 @@
             "title": "string",
             "type": "object"
         },
+        "responsesDTOs.Branches": {
+            "title": "Branches",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Branch": {
+                    "type": "string"
+                },
+                "BranchId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Country": {
+                    "$ref": "#/definitions/responsesDTOs.Countries"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Location": {
+                    "type": "string"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PhoneNumber": {
+                    "type": "string"
+                }
+            }
+        },
+        "responsesDTOs.Countries": {
+            "title": "Countries",
+            "type": "object",
+            "properties": {
+                "Country": {
+                    "type": "string"
+                },
+                "CountryCode": {
+                    "type": "string"
+                },
+                "CountryId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DefaultCurrency": {
+                    "$ref": "#/definitions/responsesDTOs.Currencies"
+                },
+                "Description": {
+                    "type": "string"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "responsesDTOs.Currencies": {
+            "title": "Currencies",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Currency": {
+                    "type": "string"
+                },
+                "CurrencyId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Symbol": {
+                    "type": "string"
+                }
+            }
+        },
         "responsesDTOs.InviteDecodeResponseDTO": {
             "title": "InviteDecodeResponseDTO",
             "type": "object",
@@ -1209,6 +1260,93 @@
                 }
             }
         },
+        "responsesDTOs.Roles": {
+            "title": "Roles",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Description": {
+                    "type": "string"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Role": {
+                    "type": "string"
+                },
+                "RoleId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "responsesDTOs.Shops": {
+            "title": "Shops",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "Image": {
+                    "type": "string"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "PhoneNumber": {
+                    "type": "string"
+                },
+                "ShopAssistantName": {
+                    "type": "string"
+                },
+                "ShopAssistantNumber": {
+                    "type": "string"
+                },
+                "ShopDescription": {
+                    "type": "string"
+                },
+                "ShopId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "ShopName": {
+                    "type": "string"
+                }
+            }
+        },
         "responsesDTOs.StringResponseDTO": {
             "title": "StringResponseDTO",
             "type": "object",
@@ -1237,6 +1375,45 @@
                 }
             }
         },
+        "responsesDTOs.UserExtraDetails": {
+            "title": "UserExtraDetails",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Branch": {
+                    "$ref": "#/definitions/responsesDTOs.Branches"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Nickname": {
+                    "type": "string"
+                },
+                "Shop": {
+                    "$ref": "#/definitions/responsesDTOs.Shops"
+                },
+                "UserDetailsId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "responsesDTOs.UserResponseDTO": {
             "title": "UserResponseDTO",
             "type": "object",
@@ -1249,7 +1426,87 @@
                     "type": "string"
                 },
                 "User": {
-                    "$ref": "#/definitions/models.Users"
+                    "$ref": "#/definitions/responsesDTOs.Users"
+                }
+            }
+        },
+        "responsesDTOs.Users": {
+            "title": "Users",
+            "type": "object",
+            "properties": {
+                "Active": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Address": {
+                    "type": "string"
+                },
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "DateCreated": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DateModified": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Dob": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "FullName": {
+                    "type": "string"
+                },
+                "Gender": {
+                    "type": "string"
+                },
+                "IdNumber": {
+                    "type": "string"
+                },
+                "IdType": {
+                    "type": "string"
+                },
+                "ImagePath": {
+                    "type": "string"
+                },
+                "IsVerified": {
+                    "type": "boolean"
+                },
+                "MaritalStatus": {
+                    "type": "string"
+                },
+                "ModifiedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Password": {
+                    "type": "string"
+                },
+                "PhoneNumber": {
+                    "type": "string"
+                },
+                "Role": {
+                    "$ref": "#/definitions/responsesDTOs.Roles"
+                },
+                "UserDetails": {
+                    "$ref": "#/definitions/responsesDTOs.UserExtraDetails"
+                },
+                "UserId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "UserType": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Username": {
+                    "type": "string"
                 }
             }
         }

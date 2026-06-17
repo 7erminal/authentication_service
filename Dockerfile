@@ -22,7 +22,8 @@ RUN apk add --no-cache ca-certificates tzdata \
 	&& chown -R appuser:appgroup /logs /app
 
 COPY --from=builder /out/authentication_service /app/authentication_service
-COPY conf /app/conf
+# COPY conf /app/conf
+COPY --from=builder /app/conf ./conf
 COPY swagger /app/swagger
 
 COPY <<'EOF' /app/entrypoint.sh
