@@ -101,7 +101,11 @@ func main() {
 
 	logs.Info("Starting Authentication Service...")
 
-	logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
+	// logs.SetLogger(logs.AdapterFile, `{"filename":"../logs/authentication_application.log"}`)
+
+	logs.SetLogger(logs.AdapterConsole)
+
+	logs.Info("Logger set. Setting CORS...")
 
 	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
 		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://localhost:8000", "http://152.67.134.169", "http://13.40.60.131:8001", "http://167.86.115.44:8002", "http://5.252.55.191", "http://185.249.227.127:9001", "http://185.249.227.127:9002", "makufoodsltd.net", "https://makufoodsltd.net", "https://www.makufoodsltd.com", "https://makufoodsltd.com", "makufoodsltd.com", "https://admin.bridgeafrica.group", "https://mestechgh.com", "https://admin.mestechgh.com", "https://client.mestechgh.com", "https://authentication.mestechgh.com"},
@@ -110,6 +114,8 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+
+	logs.Info("CORS set. Setting runmode for swagger...")
 
 	if beego.BConfig.RunMode == "dev" {
 		beego.BConfig.WebConfig.DirectoryIndex = true
