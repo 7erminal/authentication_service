@@ -23,12 +23,13 @@ RUN apk add --no-cache ca-certificates tzdata \
 
 COPY --from=builder /out/authentication_service /app/authentication_service
 COPY conf /app/conf
-# COPY --from=builder /app/conf ./conf
 COPY swagger /app/swagger
 
 COPY <<'EOF' /app/entrypoint.sh
 #!/bin/sh
 set -eu
+
+cd /app
 
 if [ -n "${APP_HTTP_PORT:-}" ]; then
   export BEEGO_HTTPPORT="${APP_HTTP_PORT}"
