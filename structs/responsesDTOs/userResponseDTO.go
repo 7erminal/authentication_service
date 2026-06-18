@@ -5,14 +5,14 @@ import (
 )
 
 type Currencies struct {
-	CurrencyId   int64     `orm:"auto;omitempty"`
-	Symbol       string    `orm:"size(20)"`
-	Currency     string    `orm:"size(50)"`
-	Active       int       `orm:"omitempty"`
-	DateCreated  time.Time `orm:"type(datetime);omitempty"`
-	DateModified time.Time `orm:"type(datetime);omitempty"`
-	CreatedBy    int       `orm:"omitempty"`
-	ModifiedBy   int       `orm:"omitempty"`
+	CurrencyId   int64
+	Symbol       string
+	Currency     string
+	Active       int
+	DateCreated  time.Time
+	DateModified time.Time
+	CreatedBy    int
+	ModifiedBy   int
 }
 
 type Countries struct {
