@@ -16,21 +16,21 @@ type Currencies struct {
 }
 
 type Countries struct {
-	CountryId       int64       `orm:"auto;column(country_id)"`
-	Country         string      `orm:"size(255)"`
-	Description     string      `orm:"size(500)"`
-	CountryCode     string      `orm:"size(20)"`
-	DefaultCurrency *Currencies `orm:"rel(fk);column(default_currency)"`
-	DateCreated     time.Time   `orm:"type(datetime)"`
-	DateModified    time.Time   `orm:"type(datetime)"`
+	CountryId       int64
+	Country         string
+	Description     string
+	CountryCode     string
+	DefaultCurrency int64
+	DateCreated     time.Time
+	DateModified    time.Time
 	CreatedBy       int
 	ModifiedBy      int
 }
 
 type Branches struct {
-	BranchId     int64      `orm:"auto"`
-	Branch       string     `orm:"size(80)"`
-	Country      *Countries `orm:"rel(fk)"`
+	BranchId     int64
+	Branch       string
+	Country      int64
 	Location     string
 	PhoneNumber  string
 	Active       int
