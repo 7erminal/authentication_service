@@ -315,6 +315,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 						return
 					}
 
+					logs.Info("Access token generated")
 					logs.Info("New access token generated is ", accessToken)
 
 					accessTokenObj := models.AccessTokens{
