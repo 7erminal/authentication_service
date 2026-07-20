@@ -219,6 +219,7 @@ func (c *AuthenticationController) LoginToken() {
 							return
 						}
 
+						logs.Info("Refresh token generated.")
 						logs.Info("Refresh token generated is ", refreshToken)
 
 						// Store refresh token

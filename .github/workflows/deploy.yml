@@ -5,15 +5,15 @@ name: Go
 
 on:
   push:
-    branches: [ "ecommerce" ]
+    branches: [ "shopmallafrik" ]
   pull_request:
-    branches: [ "ecommerce" ]
+    branches: [ "shopmallafrik" ]
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
-    environment: ecommerce
+    environment: shopmallafrik
     steps:
     - uses: actions/checkout@v4
 
@@ -36,10 +36,10 @@ jobs:
 
         ssh -o StrictHostKeyChecking=no root@$SSH_SERVER << 'EOF'
           set -e
-          cd /usr/app/ecommerce/authentication_service/
+          cd /usr/app/shopmallafrik/authentication_service/
           git stash
-          git pull origin ecommerce
-          go build -o ecommerce-authentication-service
-          pm2 restart ecommerce-authentication-service || \
-          pm2 start ecommerce-authentication-service --name ecommerce-authentication-service
+          git pull origin shopmallafrik
+          go build -o shopmallafrik-authentication-service
+          pm2 restart shopmallafrik-authentication-service || \
+          pm2 start shopmallafrik-authentication-service --name shopmallafrik-authentication-service
         EOF
