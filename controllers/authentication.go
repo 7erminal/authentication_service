@@ -219,7 +219,6 @@ func (c *AuthenticationController) LoginToken() {
 							return
 						}
 
-						logs.Info("Refresh token generated.")
 						logs.Info("Refresh token generated is ", refreshToken)
 
 						// Store refresh token
@@ -315,7 +314,6 @@ func (c *AuthenticationController) RefreshAccessToken() {
 						return
 					}
 
-					logs.Info("Access token generated")
 					logs.Info("New access token generated is ", accessToken)
 
 					accessTokenObj := models.AccessTokens{

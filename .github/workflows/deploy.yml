@@ -5,15 +5,15 @@ name: Go
 
 on:
   push:
-    branches: [ "shopmallafrik" ]
+    branches: [ "ecommerce" ]
   pull_request:
-    branches: [ "shopmallafrik" ]
+    branches: [ "ecommerce" ]
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
-    environment: shopmallafrik
+    environment: ecommerce
     steps:
     - uses: actions/checkout@v4
 
@@ -36,24 +36,10 @@ jobs:
 
         ssh -o StrictHostKeyChecking=no root@$SSH_SERVER << 'EOF'
           set -e
-
-          # Load login shell environment so PATH/NVM-installed pm2 is available.
-          [ -f ~/.bashrc ] && . ~/.bashrc || true
-          [ -f ~/.profile ] && . ~/.profile || true
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" || true
-
-          cd /usr/app/shopmallafrik/authentication_service/
+          cd /usr/app/ecommerce/ecommerce_main/authentication_service/
           git stash
-          git pull origin shopmallafrik
-          go build -o shopmallafrik-authentication-service
-
-          PM2_BIN="$(command -v pm2 || true)"
-          if [ -z "$PM2_BIN" ]; then
-            echo "pm2 not found in PATH: $PATH"
-            exit 1
-          fi
-
-          "$PM2_BIN" restart shopmallafrik-authentication-service || \
-          "$PM2_BIN" start ./shopmallafrik-authentication-service --name shopmallafrik-authentication-service
+          git pull origin ecommerce
+          go build -o ecommerce-authentication-service
+          pm2 restart ecommerce-authentication-service || \
+          pm2 start ecommerce-authentication-service --name ecommerce-authentication-service
         EOF
