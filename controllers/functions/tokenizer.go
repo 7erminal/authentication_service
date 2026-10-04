@@ -93,7 +93,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 				if userResp, err := GetUser(&beego.Controller{}, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(tokenObj.User))}); err == nil {
 					logs.Info("User response is ", userResp)
 					if userResp.StatusCode == 200 {
-						userJson, err := json.Marshal(userResp.User)
+						userJson, err := json.Marshal(userResp.Result)
 						if err != nil {
 							logs.Error("Error marshalling user to JSON: ", err.Error())
 						} else {
@@ -101,7 +101,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 						}
 						if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
 							logs.Info("Token is valid")
-							resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: userResp.User}
+							resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: userResp.Result}
 							return resp, nil
 						} else {
 							logs.Info("Token has expired")

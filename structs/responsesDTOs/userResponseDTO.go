@@ -131,7 +131,7 @@ type UserResp struct {
 
 type UserResponseDTO struct {
 	StatusCode int
-	User       *Users
+	Result     *Users
 	StatusDesc string
 }
 
