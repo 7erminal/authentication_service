@@ -36,8 +36,8 @@ type Branches struct {
 	Active       int
 	DateCreated  time.Time
 	DateModified time.Time
-	CreatedBy    int
-	ModifiedBy   int
+	CreatedBy    string
+	ModifiedBy   string
 }
 
 type Shops struct {
@@ -51,8 +51,8 @@ type Shops struct {
 	Image               string    `orm:"size(100);omitempty"`
 	DateCreated         time.Time `orm:"type(datetime)"`
 	DateModified        time.Time `orm:"type(datetime)"`
-	CreatedBy           int
-	ModifiedBy          int
+	CreatedBy           string
+	ModifiedBy          string
 	Active              int
 }
 
@@ -63,8 +63,8 @@ type UserExtraDetails struct {
 	Nickname      string
 	DateCreated   time.Time
 	DateModified  time.Time
-	CreatedBy     int
-	ModifiedBy    int
+	CreatedBy     string
+	ModifiedBy    string
 	Active        int
 }
 
@@ -74,8 +74,8 @@ type Roles struct {
 	Description  string
 	DateCreated  time.Time
 	DateModified time.Time
-	CreatedBy    int
-	ModifiedBy   int
+	CreatedBy    string
+	ModifiedBy   string
 	Active       int
 }
 
@@ -146,8 +146,8 @@ type Identification_types struct {
 	Code                 string
 	DateCreated          time.Time
 	DateModified         time.Time
-	CreatedBy            int
-	ModifiedBy           int
+	CreatedBy            string
+	ModifiedBy           string
 	Active               int
 }
 
@@ -157,8 +157,8 @@ type Customer_categories struct {
 	Description        string
 	DateCreated        time.Time
 	DateModified       time.Time
-	CreatedBy          int
-	ModifiedBy         int
+	CreatedBy          string
+	ModifiedBy         string
 	Active             int
 }
 
