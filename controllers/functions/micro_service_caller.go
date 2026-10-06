@@ -132,6 +132,55 @@ func GetUserWithUsername(c *beego.Controller, req requestsDTOs.GetUserWithUserna
 	return data, nil
 }
 
+func GetRole(c *beego.Controller, roleId string) (responsesDTOs.RoleApiResponseDTO, error) {
+	host, _ := beego.AppConfig.String("customerBaseUrl")
+
+	logs.Info("Request to get Role: ", roleId)
+
+	request := api.NewRequest(
+		host,
+		"/v1/roles/"+roleId,
+		api.GET)
+
+	// request.Params = {"UserId": strconv.Itoa(int(userid))}
+	client := api.Client{
+		Request: request,
+		Type_:   "params",
+	}
+	res, err := client.SendRequest()
+	if err != nil {
+		logs.Error("client.Error: %v", err)
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.RoleApiResponseDTO{}, err
+	}
+	defer res.Body.Close()
+	read, err := io.ReadAll(res.Body)
+	if err != nil {
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.RoleApiResponseDTO{}, err
+	}
+
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
+		logs.Info("Raw response received is ", string(read))
+	} else {
+		logs.Info("Raw response received is \n", prettyJSON.String())
+	}
+	// data := map[string]interface{}{}
+	// var dataOri responses.UserOriResponseDTO
+	var data responsesDTOs.RoleApiResponseDTO
+	if err := json.Unmarshal(read, &data); err != nil {
+		setControllerJSON(c, err.Error())
+		return responsesDTOs.RoleApiResponseDTO{}, err
+	}
+	setControllerJSON(c, data)
+
+	logs.Info("Resp is ", data)
+	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
+
+	return data, nil
+}
+
 func GetCustomer(c *beego.Controller, req requestsDTOs.GetCustomerRequest) (responsesDTOs.CustomerResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
 

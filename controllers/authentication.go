@@ -175,77 +175,93 @@ func (c *AuthenticationController) LoginToken() {
 
 				logs.Info("Successfully validated credentials")
 
-				// Create access token (15 minutes expiry)
-				token, expiryTime, err := functions.CreateAccessToken(v.Username)
+				roleStr := strconv.FormatInt(a.Result.Role.RoleId, 10)
+				if roleResp, err := functions.GetRole(&c.Controller, roleStr); err == nil && roleResp.StatusCode == 200 {
+					logs.Info("Role fetched successfully: ", roleResp.Role)
 
-				logs.Info("access Token created is ", token, "Expiry time is ", expiryTime)
+					permissions := []responsesDTOs.UserPermission{}
 
-				if err != nil {
-					logs.Error("Error updating token. ", err.Error())
-					statusCode = 301
-					statusMessage = "Error generating token"
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
-					c.Data["json"] = resp
-				} else {
-					// Revoke old tokens for this user
-					updateToken := models.AccessTokens{User: a.Result.UserId, Revoked: true}
-					if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
-						logs.Error("Error revoking old tokens. ", err.Error())
+					for _, perm := range roleResp.Role.RolePermissions {
+						permissions = append(permissions, responsesDTOs.UserPermission{PermissionCode: perm.Permission.PermissionCode, ActionCode: perm.Action.Action})
+
 					}
 
-					// time.Now().UTC().Add(time.Hour * 1).Unix()
-					t := time.Unix(expiryTime, 0)
-					logs.Info("Time object created is ", t)
-					logs.Info("Time now is ", time.Now().UTC())
-					tokenObj := models.AccessTokens{
-						User:         a.Result.UserId,
-						Token:        token,
-						ExpiresAt:    t,
-						DateCreated:  time.Now().UTC(),
-						DateModified: time.Now().UTC(),
-						LastUsedAt:   time.Now().UTC(),
-					}
-					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
-						statusCode = 200
-						statusMessage = "Access token generated successfully"
-						accessTokenObj = &tokenObj
+					// Create access token (15 minutes expiry)
+					token, expiryTime, err := functions.CreateAccessToken(v.Username, permissions)
 
-						// Create refresh token (7 days)
-						refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
-						if err != nil {
-							logs.Error("Error generating refresh token: ", err.Error())
-							c.Data["json"] = err.Error()
-							c.ServeJSON()
-							return
-						}
+					logs.Info("access Token created is ", token, "Expiry time is ", expiryTime)
 
-						logs.Info("Refresh token generated is ", refreshToken)
-
-						// Store refresh token
-						refreshTokenObj = &models.RefreshTokens{
-							User:         a.Result.UserId,
-							Token:        refreshToken,
-							ExpiresAt:    time.Unix(refreshExpiryTime, 0),
-							IPAddress:    ipAddress,
-							UserAgent:    "", //userAgent,
-							AccessToken:  accessTokenObj,
-							DateCreated:  time.Now().UTC(),
-							DateModified: time.Now().UTC(),
-						}
-
-						if _, err := models.AddRefreshTokens(refreshTokenObj); err != nil {
-							logs.Error("Error saving refresh token: ", err.Error())
-							c.Data["json"] = err.Error()
-							c.ServeJSON()
-							return
-						}
-						logs.Info("Refresh token saved successfully::  ", refreshTokenObj.Token)
-					} else {
-						logs.Error("Error adding token. ", err.Error())
+					if err != nil {
+						logs.Error("Error updating token. ", err.Error())
 						statusCode = 301
 						statusMessage = "Error generating token"
-					}
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
+						c.Data["json"] = resp
+					} else {
+						// Revoke old tokens for this user
+						updateToken := models.AccessTokens{User: a.Result.UserId, Revoked: true}
+						if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
+							logs.Error("Error revoking old tokens. ", err.Error())
+						}
 
+						// time.Now().UTC().Add(time.Hour * 1).Unix()
+						t := time.Unix(expiryTime, 0)
+						logs.Info("Time object created is ", t)
+						logs.Info("Time now is ", time.Now().UTC())
+						tokenObj := models.AccessTokens{
+							User:         a.Result.UserId,
+							Token:        token,
+							ExpiresAt:    t,
+							DateCreated:  time.Now().UTC(),
+							DateModified: time.Now().UTC(),
+							LastUsedAt:   time.Now().UTC(),
+						}
+						if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+							statusCode = 200
+							statusMessage = "Access token generated successfully"
+							accessTokenObj = &tokenObj
+
+							// Create refresh token (7 days)
+							refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
+							if err != nil {
+								logs.Error("Error generating refresh token: ", err.Error())
+								c.Data["json"] = err.Error()
+								c.ServeJSON()
+								return
+							}
+
+							logs.Info("Refresh token generated is ", refreshToken)
+
+							// Store refresh token
+							refreshTokenObj = &models.RefreshTokens{
+								User:         a.Result.UserId,
+								Token:        refreshToken,
+								ExpiresAt:    time.Unix(refreshExpiryTime, 0),
+								IPAddress:    ipAddress,
+								UserAgent:    "", //userAgent,
+								AccessToken:  accessTokenObj,
+								DateCreated:  time.Now().UTC(),
+								DateModified: time.Now().UTC(),
+							}
+
+							if _, err := models.AddRefreshTokens(refreshTokenObj); err != nil {
+								logs.Error("Error saving refresh token: ", err.Error())
+								c.Data["json"] = err.Error()
+								c.ServeJSON()
+								return
+							}
+							logs.Info("Refresh token saved successfully::  ", refreshTokenObj.Token)
+						} else {
+							logs.Error("Error adding token. ", err.Error())
+							statusCode = 301
+							statusMessage = "Error generating token"
+						}
+
+					}
+				} else {
+					logs.Error("Error fetching role: ", err.Error())
+					statusCode = 604
+					statusMessage = "Role not found"
 				}
 			}
 		} else {
@@ -307,51 +323,70 @@ func (c *AuthenticationController) RefreshAccessToken() {
 						username = userResp.Result.Email
 						logs.Info("Using email as username ", username)
 					}
-					accessToken, accessExpiryTime, err := functions.CreateAccessToken(username)
-					if err != nil {
-						c.Data["json"] = err.Error()
-						c.ServeJSON()
-						return
+					roleStr := strconv.FormatInt(userResp.Result.Role.RoleId, 10)
+					if roleResp, err := functions.GetRole(&c.Controller, roleStr); err == nil && roleResp.StatusCode == 200 {
+						logs.Info("Role fetched successfully: ", roleResp.Role)
+
+						permissions := []responsesDTOs.UserPermission{}
+
+						for _, perm := range roleResp.Role.RolePermissions {
+							permissions = append(permissions, responsesDTOs.UserPermission{PermissionCode: perm.Permission.PermissionCode, ActionCode: perm.Action.Action})
+
+						}
+						accessToken, accessExpiryTime, err := functions.CreateAccessToken(username, permissions)
+						if err != nil {
+							c.Data["json"] = err.Error()
+							c.ServeJSON()
+							return
+						}
+
+						logs.Info("New access token generated is ", accessToken)
+
+						accessTokenObj := models.AccessTokens{
+							User:         refreshTokenObj.User,
+							Token:        accessToken,
+							ExpiresAt:    time.Unix(accessExpiryTime, 0).UTC(),
+							IPAddress:    c.Ctx.Request.RemoteAddr,
+							DateCreated:  time.Now().UTC(),
+							DateModified: time.Now().UTC(),
+							LastUsedAt:   time.Now().UTC(),
+						}
+
+						if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
+							logs.Error("Error adding access token ", err.Error())
+							c.Data["json"] = err.Error()
+							c.ServeJSON()
+							return
+						}
+
+						var tokenResponse = responsesDTOs.TokenResponseDTO{
+							AccessToken:  accessToken,
+							RefreshToken: refreshToken, // Return same refresh token
+							TokenType:    "Bearer",
+							ExpiresIn:    900,
+						}
+
+						userType := "USER"
+
+						result := responsesDTOs.LoginDataResponseDTO{
+							UserType: userType,
+							Token:    &tokenResponse,
+						}
+
+						logs.Info("Refresh token returned is ", result.Token.RefreshToken)
+
+						var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Access token generated successfully", Result: &result}
+
+						c.Data["json"] = resp
+					} else {
+						logs.Error("Error fetching role details: ", err.Error())
+						var resp = responsesDTOs.StringResponseDTO{
+							StatusCode: 608,
+							Value:      "",
+							StatusDesc: "Role not found",
+						}
+						c.Data["json"] = resp
 					}
-
-					logs.Info("New access token generated is ", accessToken)
-
-					accessTokenObj := models.AccessTokens{
-						User:         refreshTokenObj.User,
-						Token:        accessToken,
-						ExpiresAt:    time.Unix(accessExpiryTime, 0).UTC(),
-						IPAddress:    c.Ctx.Request.RemoteAddr,
-						DateCreated:  time.Now().UTC(),
-						DateModified: time.Now().UTC(),
-						LastUsedAt:   time.Now().UTC(),
-					}
-
-					if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
-						logs.Error("Error adding access token ", err.Error())
-						c.Data["json"] = err.Error()
-						c.ServeJSON()
-						return
-					}
-
-					var tokenResponse = responsesDTOs.TokenResponseDTO{
-						AccessToken:  accessToken,
-						RefreshToken: refreshToken, // Return same refresh token
-						TokenType:    "Bearer",
-						ExpiresIn:    900,
-					}
-
-					userType := "USER"
-
-					result := responsesDTOs.LoginDataResponseDTO{
-						UserType: userType,
-						Token:    &tokenResponse,
-					}
-
-					logs.Info("Refresh token returned is ", result.Token.RefreshToken)
-
-					var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Access token generated successfully", Result: &result}
-
-					c.Data["json"] = resp
 				} else {
 					logs.Info("User not found")
 					c.Ctx.Output.SetStatus(401)
@@ -434,9 +469,10 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 				statusCode = 605
 				statusMessage = "Incorrect password"
 			} else {
+
 				c.Ctx.Output.SetStatus(200)
 
-				token, expiryTime, err := functions.CreateAccessToken(v.Username)
+				token, expiryTime, err := functions.CreateCustomerAccessToken(v.Username, "customer")
 
 				logs.Info("Token created is ", token)
 
@@ -546,7 +582,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 			if customerResp, err := functions.GetCustomer(&c.Controller, requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(refreshTokenObj.Customer))}); err == nil {
 				if customerResp.StatusCode == 200 {
 					logs.Info("Refresh token is valid. Generating new access token...")
-					accessToken, accessExpiryTime, err := functions.CreateAccessToken(customerResp.Result.CustomerNumber)
+					accessToken, accessExpiryTime, err := functions.CreateCustomerAccessToken(customerResp.Result.CustomerNumber, "customer")
 					if err != nil {
 						c.Data["json"] = err.Error()
 						c.ServeJSON()

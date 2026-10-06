@@ -68,15 +68,51 @@ type UserExtraDetails struct {
 	Active        int
 }
 
-type Roles struct {
-	RoleId       int64
-	Role         string
+type Actions struct {
+	ActionId     int64
+	Action       string
 	Description  string
 	DateCreated  time.Time
 	DateModified time.Time
-	CreatedBy    string
-	ModifiedBy   string
+	CreatedBy    int
+	ModifiedBy   int
 	Active       int
+}
+
+type Permissions struct {
+	PermissionId          int64
+	Permission            string
+	PermissionCode        string
+	PermissionDescription string
+	DateCreated           time.Time
+	DateModified          time.Time
+	CreatedBy             string
+	ModifiedBy            string
+	Active                int
+}
+
+type Role_permissions struct {
+	RolePermissionId int64
+	Role             *Roles
+	Permission       *Permissions
+	Action           *Actions
+	DateCreated      time.Time
+	DateModified     time.Time
+	CreatedBy        string
+	ModifiedBy       string
+	Active           int
+}
+
+type Roles struct {
+	RoleId          int64
+	Role            string
+	Description     string
+	DateCreated     time.Time
+	DateModified    time.Time
+	CreatedBy       string
+	ModifiedBy      string
+	Active          int
+	RolePermissions []*Role_permissions
 }
 
 type Users struct {
@@ -138,6 +174,17 @@ type UserResponseDTO struct {
 type UserTokenResponseDTO struct {
 	IsValid bool
 	User    *Users
+}
+
+type RoleApiResponseDTO struct {
+	StatusCode int
+	Role       *Roles
+	StatusDesc string
+}
+
+type UserPermission struct {
+	PermissionCode string
+	ActionCode     string
 }
 
 type Identification_types struct {

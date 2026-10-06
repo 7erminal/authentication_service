@@ -30,13 +30,32 @@ func GenerateKey() ([]byte, error) {
 	return key, err
 }
 
-func CreateAccessToken(username string) (string, int64, error) {
+func CreateAccessToken(username string, permssions []responsesDTOs.UserPermission) (string, int64, error) {
+	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
+	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"username":    username,
+			"exp":         expiryTime,
+			"permissions": permssions,
+		})
+
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return tokenString, expiryTime, nil
+}
+
+func CreateCustomerAccessToken(username string, category string) (string, int64, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,
 			"exp":      expiryTime,
+			"category": category,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
