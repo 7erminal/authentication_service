@@ -100,8 +100,8 @@ type Users struct {
 	IsVerified    bool
 	DateCreated   time.Time
 	DateModified  time.Time
-	CreatedBy     int
-	ModifiedBy    int
+	CreatedBy     string
+	ModifiedBy    string
 }
 
 type UserResp struct {
@@ -124,8 +124,8 @@ type UserResp struct {
 	IsVerified    bool
 	DateCreated   time.Time
 	DateModified  time.Time
-	CreatedBy     int
-	ModifiedBy    int
+	CreatedBy     string
+	ModifiedBy    string
 	Branch        *Branches
 }
 
@@ -169,8 +169,8 @@ type Customer_emergency_contacts struct {
 	Customer                   *Customers
 	DateCreated                time.Time
 	DateModified               time.Time
-	CreatedBy                  int
-	ModifiedBy                 int
+	CreatedBy                  string
+	ModifiedBy                 string
 }
 
 type Customer_guarantors struct {
@@ -180,8 +180,8 @@ type Customer_guarantors struct {
 	Customer            *Customers
 	DateCreated         time.Time
 	DateModified        time.Time
-	CreatedBy           int
-	ModifiedBy          int
+	CreatedBy           string
+	ModifiedBy          string
 }
 
 type Customers struct {
@@ -202,8 +202,8 @@ type Customers struct {
 	Dob                  time.Time
 	DateCreated          time.Time
 	DateModified         time.Time
-	CreatedBy            int
-	ModifiedBy           int
+	CreatedBy            string
+	ModifiedBy           string
 	Active               int
 	LastTxnDate          time.Time
 	EmergencyContacts    []*Customer_emergency_contacts
