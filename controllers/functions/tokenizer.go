@@ -30,12 +30,14 @@ func GenerateKey() ([]byte, error) {
 	return key, err
 }
 
-func CreateAccessToken(username string, permssions []responsesDTOs.UserPermission) (string, int64, error) {
+func CreateAccessToken(username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission) (string, int64, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username":    username,
+			"roleid":      roleid,
+			"rolename":    rolename,
 			"exp":         expiryTime,
 			"permissions": permssions,
 		})

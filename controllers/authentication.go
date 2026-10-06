@@ -187,7 +187,7 @@ func (c *AuthenticationController) LoginToken() {
 					}
 
 					// Create access token (15 minutes expiry)
-					token, expiryTime, err := functions.CreateAccessToken(v.Username, permissions)
+					token, expiryTime, err := functions.CreateAccessToken(v.Username, roleStr, a.Result.Role.Role, permissions)
 
 					logs.Info("access Token created is ", token, "Expiry time is ", expiryTime)
 
@@ -333,7 +333,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 							permissions = append(permissions, responsesDTOs.UserPermission{PermissionCode: perm.Permission.PermissionCode, ActionCode: perm.Action.Action})
 
 						}
-						accessToken, accessExpiryTime, err := functions.CreateAccessToken(username, permissions)
+						accessToken, accessExpiryTime, err := functions.CreateAccessToken(username, roleStr, roleResp.Role.Role, permissions)
 						if err != nil {
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
