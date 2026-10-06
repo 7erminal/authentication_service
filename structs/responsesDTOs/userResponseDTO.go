@@ -173,7 +173,7 @@ type UserResponseDTO struct {
 
 type UserTokenResponseDTO struct {
 	IsValid bool
-	User    *Users
+	User    *AuthenticatedUser
 }
 
 type RoleApiResponseDTO struct {
@@ -259,7 +259,7 @@ type Customers struct {
 
 type CustomerTokenResponseDTO struct {
 	IsValid  bool
-	Customer *Customers
+	Customer *AuthenticatedCustomer
 }
 
 type CustomerResponseDTO struct {
@@ -274,4 +274,21 @@ type LoginResponseDTO struct {
 	RefreshToken string
 	User         *Users
 	StatusDesc   string
+}
+
+type AuthenticatedUser struct {
+	UserID      string
+	Username    string
+	RoleID      string
+	RoleName    string
+	ExpiryTime  int64
+	Permissions []UserPermission
+}
+
+type AuthenticatedCustomer struct {
+	CustomerId       string
+	Username         string
+	Number           string
+	CustomerCategory string
+	ExpiryTime       int64
 }

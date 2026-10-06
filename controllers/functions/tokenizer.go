@@ -8,10 +8,8 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"time"
 
@@ -30,11 +28,12 @@ func GenerateKey() ([]byte, error) {
 	return key, err
 }
 
-func CreateAccessToken(username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission) (string, int64, error) {
+func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission) (string, int64, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
+			"userid":      userid,
 			"username":    username,
 			"roleid":      roleid,
 			"rolename":    rolename,
@@ -55,9 +54,11 @@ func CreateCustomerAccessToken(username string, category string) (string, int64,
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"username": username,
-			"exp":      expiryTime,
-			"category": category,
+			"customerId": username,
+			"username":   username,
+			"exp":        expiryTime,
+			"category":   category,
+			"number":     username,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
@@ -100,49 +101,80 @@ func VerifyToken(tokenString string) (bool, error) {
 	return true, nil
 }
 
+// GetAccessTokenClaims decodes access token claims into a strongly typed struct.
+func GetAccessTokenClaims(tokenString string) (*responsesDTOs.AccessTokenClaims, error) {
+	claims := &responsesDTOs.AccessTokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
+}
+
+// GetCustomerAccessTokenClaims decodes customer token claims into a strongly typed struct.
+func GetCustomerAccessTokenClaims(tokenString string) (*responsesDTOs.CustomerAccessTokenClaims, error) {
+	claims := &responsesDTOs.CustomerAccessTokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
+}
+
 func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error) {
 
 	if token, err := VerifyToken(token_); err == nil {
 		if token {
 			logs.Info("Valid token...")
-			if tokenObj, err := models.GetAccessTokensByToken(token_); err == nil {
-				logs.Info("Token fetched is ", tokenObj.Token)
-				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-				logs.Info("Time now is ", time.Now().UTC())
-				logs.Info("Time now server is ", time.Now())
+			if claims, claimsErr := GetAccessTokenClaims(token_); claimsErr == nil {
+				logs.Info("Decoded access token claims: username=", claims.Username, " roleid=", claims.RoleID, " rolename=", claims.RoleName, " permissions=", claims.Permissions)
 
-				if userResp, err := GetUser(&beego.Controller{}, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(tokenObj.User))}); err == nil {
-					logs.Info("User response is ", userResp)
-					if userResp.StatusCode == 200 {
-						userJson, err := json.Marshal(userResp.Result)
-						if err != nil {
-							logs.Error("Error marshalling user to JSON: ", err.Error())
-						} else {
-							logs.Info("User for token is ", string(userJson))
-						}
-						if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
-							logs.Info("Token is valid")
-							resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: userResp.Result}
-							return resp, nil
-						} else {
-							logs.Info("Token has expired")
-							resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
-							return resp, nil
-						}
+				if tokenObj, err := models.GetAccessTokensByToken(token_); err == nil {
+					logs.Info("Token fetched is ", tokenObj.Token)
+					logs.Info("Token expiry is ", tokenObj.ExpiresAt)
+					logs.Info("Time now is ", time.Now().UTC())
+					logs.Info("Time now server is ", time.Now())
+
+					authUser := &responsesDTOs.AuthenticatedUser{
+						UserID:      claims.UserID,
+						Username:    claims.Username,
+						RoleID:      claims.RoleID,
+						RoleName:    claims.RoleName,
+						Permissions: claims.Permissions,
+					}
+					if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
+						logs.Info("Token is valid")
+						resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: authUser}
+						return resp, nil
 					} else {
-						logs.Error("Error fetching user for token: ", userResp.StatusDesc)
+						logs.Info("Token has expired")
 						resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
-						return resp, err
+						return resp, nil
 					}
 				} else {
-					logs.Error("Error fetching token details: ", err.Error())
+					logs.Error("Token does not exist...", err.Error())
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 					return resp, err
 				}
+
 			} else {
-				logs.Error("Token does not exist...", err.Error())
+				logs.Error("Error decoding access token claims: ", claimsErr.Error())
 				resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
-				return resp, err
+				return resp, claimsErr
 			}
 		} else {
 			logs.Error("Token is invalid...")
@@ -182,7 +214,17 @@ func GetUserFromBearerToken(authorizationHeader string) (*responsesDTOs.Users, e
 		return nil, fmt.Errorf("invalid access token")
 	}
 
-	return tokenResp.User, nil
+	logs.Info("Getting user")
+	userReq := requestsDTOs.GetUserRequest{UserId: tokenResp.User.UserID}
+	if user, err := GetUser(&beego.Controller{}, userReq); err == nil {
+		if user.StatusCode == 200 {
+			return user.Result, nil
+		} else {
+			return nil, fmt.Errorf("error fetching user: %s", user.StatusDesc)
+		}
+	} else {
+		return nil, err
+	}
 }
 
 func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenResponseDTO, error) {
@@ -190,49 +232,40 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 	if token, err := VerifyToken(token_); err == nil {
 		if token {
 			logs.Info("Valid token...")
-			if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
-				logs.Info("Token fetched is ", tokenObj.Token)
-				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-				logs.Info("Time now is ", time.Now().UTC())
-				customerJson, err := json.Marshal(tokenObj.Customer)
-				if err != nil {
-					logs.Error("Error marshalling customer to JSON: ", err.Error())
-				} else {
-					logs.Info("Customer for token is ", string(customerJson))
-				}
+			if claims, claimsErr := GetCustomerAccessTokenClaims(token_); claimsErr == nil {
+				logs.Info("Decoded customer token claims: username=", claims.Username, " category=", claims.Category)
 
-				if customerResp, err := GetCustomer(&beego.Controller{}, requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(tokenObj.Customer))}); err == nil {
-					if customerResp.StatusCode == 200 {
-						customerJson, err := json.Marshal(customerResp.Result)
-						if err != nil {
-							logs.Error("Error marshalling customer to JSON: ", err.Error())
-						} else {
-							logs.Info("Customer for token is ", string(customerJson))
-						}
+				if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
+					logs.Info("Token fetched is ", tokenObj.Token)
+					logs.Info("Token expiry is ", tokenObj.ExpiresAt)
+					logs.Info("Time now is ", time.Now().UTC())
 
-						if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
-							logs.Info("Token is valid")
-							resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: customerResp.Result}
-							return resp, nil
-						} else {
-							logs.Info("Token has expired")
-							resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
-							return resp, nil
+					if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
+						logs.Info("Token is valid")
+						authCustomer := &responsesDTOs.AuthenticatedCustomer{
+							CustomerId:       claims.CustomerId,
+							Username:         claims.Username,
+							Number:           claims.Number,
+							CustomerCategory: claims.Category,
+							ExpiryTime:       tokenObj.ExpiresAt.Unix(),
 						}
+						resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: authCustomer}
+						return resp, nil
 					} else {
-						logs.Error("Error fetching customer for token: ", customerResp.StatusDesc)
+						logs.Info("Token has expired")
 						resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
-						return resp, err
+						return resp, nil
 					}
+
 				} else {
-					logs.Error("Error fetching token details: ", err.Error())
+					logs.Error("Token does not exist...", err.Error())
 					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
 					return resp, err
 				}
 			} else {
-				logs.Error("Token does not exist...", err.Error())
+				logs.Error("Error decoding customer token claims: ", claimsErr.Error())
 				resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
-				return resp, err
+				return resp, claimsErr
 			}
 		} else {
 			logs.Error("Token is invalid...")

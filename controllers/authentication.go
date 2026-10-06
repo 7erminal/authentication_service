@@ -27,7 +27,7 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("VerifyOTP", c.VerifyOTP)
 	c.Mapping("ResendOTP", c.ResendOTP)
 	c.Mapping("LoginToken", c.LoginToken)
-	c.Mapping("CheckTokenExpiry", c.CheckTokenExpiry)
+	c.Mapping("GetUserFromToken", c.GetUserFromToken)
 	c.Mapping("GenerateInviteToken", c.GenerateInviteToken)
 	c.Mapping("VerifyInviteToken", c.VerifyInviteToken)
 	c.Mapping("ChangePassword", c.ChangePassword)
@@ -39,7 +39,7 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("VerifyToken", c.VerifyToken)
 	c.Mapping("ValidateCustomerCredentialsToken", c.ValidateCustomerCredentialsToken)
 	c.Mapping("ExpireCustomerToken", c.ExpireCustomerToken)
-	c.Mapping("CheckCustomerTokenExpiry", c.CheckCustomerTokenExpiry)
+	c.Mapping("VerifyCustomerToken", c.VerifyCustomerToken)
 	c.Mapping("ChangeCustomerPassword", c.ChangeCustomerPassword)
 	c.Mapping("ResetCustomerPassword", c.ResetCustomerPassword)
 	c.Mapping("RefreshAccessToken", c.RefreshAccessToken)
@@ -187,7 +187,8 @@ func (c *AuthenticationController) LoginToken() {
 					}
 
 					// Create access token (15 minutes expiry)
-					token, expiryTime, err := functions.CreateAccessToken(v.Username, roleStr, a.Result.Role.Role, permissions)
+					useridstr := strconv.Itoa(int(a.Result.UserId))
+					token, expiryTime, err := functions.CreateAccessToken(useridstr, v.Username, roleStr, a.Result.Role.Role, permissions)
 
 					logs.Info("access Token created is ", token, "Expiry time is ", expiryTime)
 
@@ -333,7 +334,8 @@ func (c *AuthenticationController) RefreshAccessToken() {
 							permissions = append(permissions, responsesDTOs.UserPermission{PermissionCode: perm.Permission.PermissionCode, ActionCode: perm.Action.Action})
 
 						}
-						accessToken, accessExpiryTime, err := functions.CreateAccessToken(username, roleStr, roleResp.Role.Role, permissions)
+						useridstr := strconv.Itoa(int(userResp.Result.UserId))
+						accessToken, accessExpiryTime, err := functions.CreateAccessToken(useridstr, username, roleStr, roleResp.Role.Role, permissions)
 						if err != nil {
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
@@ -1524,14 +1526,14 @@ func (c *AuthenticationController) VerifyActivationCode() {
 	c.ServeJSON()
 }
 
-// CheckTokenExpiry ...
-// @Title Check token expiry
-// @Description Check Token Expiry
+// VerifyTokenExpiry ...
+// @Title Verify token expiry
+// @Description Verify Token Expiry
 // @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
 // @Success 200 {object} responsesDTOs.StringResponseDTO
 // @Failure 403 body is empty
-// @router /token/check [post]
-func (c *AuthenticationController) CheckTokenExpiry() {
+// @router /token/verify [post]
+func (c *AuthenticationController) VerifyToken() {
 	logs.Info("Received request to check token expiry")
 	var q requestsDTOs.StringRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
@@ -1541,30 +1543,30 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 	if token, err := functions.CheckTokenExpiry(q.Value); err == nil {
 		if token.IsValid {
 			logs.Info("Token is still valid. User is ", token.User)
-			logs.Info("User role is ", token.User.Role.Role)
+			logs.Info("User role is ", token.User.RoleName)
 
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, Result: token.User, StatusDesc: "Token is valid"}
+			var resp = responsesDTOs.AccessVerificationResponseDTO{StatusCode: 200, Result: token.User, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {
-			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Invalid token"}
+			var resp = responsesDTOs.AccessVerificationResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Invalid token"}
 			c.Data["json"] = resp
 		}
 	} else {
 		logs.Error("Error validating token...", err.Error())
-		var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, Result: nil, StatusDesc: "Error validating token"}
+		var resp = responsesDTOs.AccessVerificationResponseDTO{StatusCode: 703, Result: nil, StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()
 }
 
-// VerifyToken ...
-// @Title Verify token
-// @Description Verify token
+// GetUserFromToken ...
+// @Title Get user from token
+// @Description Get user from token
 // @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
-// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Success 200 {object} responsesDTOs.UserResponseDTO
 // @Failure 403 body is empty
-// @router /token/verify [post]
-func (c *AuthenticationController) VerifyToken() {
+// @router /token/user [post]
+func (c *AuthenticationController) GetUserFromToken() {
 	var q requestsDTOs.TokenDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
@@ -1577,7 +1579,7 @@ func (c *AuthenticationController) VerifyToken() {
 	requestUser, err := functions.GetUserFromBearerToken(authorization)
 	if err != nil {
 		c.Ctx.Output.SetStatus(401)
-		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Invalid or missing access token"}
+		var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Invalid or missing access token"}
 		c.Data["json"] = resp
 		c.ServeJSON()
 		return
@@ -1598,9 +1600,9 @@ func (c *AuthenticationController) VerifyToken() {
 		// Optional hardening: bind to device/network
 		if tokenObj.IPAddress != "" && tokenObj.IPAddress != c.Ctx.Request.RemoteAddr {
 			c.Ctx.Output.SetStatus(401)
-			c.Data["json"] = responsesDTOs.StringResponseDTO{
+			c.Data["json"] = responsesDTOs.UserResponseDTO{
 				StatusCode: 605,
-				Value:      "",
+				Result:     nil,
 				StatusDesc: "Token IP mismatch",
 			}
 			c.ServeJSON()
@@ -1609,9 +1611,9 @@ func (c *AuthenticationController) VerifyToken() {
 
 		if tokenObj.Revoked || !tokenObj.ExpiresAt.After(time.Now().UTC()) {
 			c.Ctx.Output.SetStatus(401)
-			c.Data["json"] = responsesDTOs.StringResponseDTO{
+			c.Data["json"] = responsesDTOs.UserResponseDTO{
 				StatusCode: 605,
-				Value:      "",
+				Result:     nil,
 				StatusDesc: "Refresh token expired or revoked",
 			}
 			c.ServeJSON()
@@ -1620,9 +1622,9 @@ func (c *AuthenticationController) VerifyToken() {
 
 		if tokenObj.User != requestUser.UserId {
 			c.Ctx.Output.SetStatus(401)
-			c.Data["json"] = responsesDTOs.StringResponseDTO{
+			c.Data["json"] = responsesDTOs.UserResponseDTO{
 				StatusCode: 605,
-				Value:      "",
+				Result:     nil,
 				StatusDesc: "Token does not belong to this user",
 			}
 			c.ServeJSON()
@@ -1642,14 +1644,14 @@ func (c *AuthenticationController) VerifyToken() {
 	c.ServeJSON()
 }
 
-// CheckCustomerTokenExpiry ...
-// @Title Check Customer token expiry
-// @Description Check Token Expiry
+// VerifyCustomerTokenExpiry ...
+// @Title Verify Customer token
+// @Description Verify Customer token
 // @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
 // @Success 200 {object} responsesDTOs.StringResponseDTO
 // @Failure 403 body is empty
-// @router /customer-token/check [post]
-func (c *AuthenticationController) CheckCustomerTokenExpiry() {
+// @router /customer-token/verify [post]
+func (c *AuthenticationController) VerifyCustomerToken() {
 	var q requestsDTOs.StringRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
@@ -1658,30 +1660,29 @@ func (c *AuthenticationController) CheckCustomerTokenExpiry() {
 	if token, err := functions.CheckCustomerTokenExpiry(q.Value); err == nil {
 		if token.IsValid {
 			logs.Info("Token is still valid. Customer is ", token.Customer)
-			logs.Info("Customer name is ", token.Customer.FullName)
 
-			var resp = responsesDTOs.CustomerResponseDTO{StatusCode: 200, Result: token.Customer, StatusDesc: "Token is valid"}
+			var resp = responsesDTOs.CustomerAccessVerificationResponseDTO{StatusCode: 200, Result: token.Customer, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {
-			var resp = responsesDTOs.CustomerResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Invalid token"}
+			var resp = responsesDTOs.CustomerAccessVerificationResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Invalid token"}
 			c.Data["json"] = resp
 		}
 	} else {
 		logs.Error("Error validating token...", err.Error())
-		var resp = responsesDTOs.CustomerResponseDTO{StatusCode: 703, Result: nil, StatusDesc: "Error validating token"}
+		var resp = responsesDTOs.CustomerAccessVerificationResponseDTO{StatusCode: 703, Result: nil, StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
 	c.ServeJSON()
 }
 
-// VerifyCustomerToken ...
-// @Title Verify Customer token
-// @Description Verify Customer token
+// GetCustomerWithToken ...
+// @Title Get Customer with token
+// @Description Get Customer with token
 // @Param	body		body 	requestsDTOs.StringRequestDTO	true		"body for Authentication content"
-// @Success 200 {object} responsesDTOs.StringResponseDTO
+// @Success 200 {object} responsesDTOs.CustomerAccessVerificationResponseDTO
 // @Failure 403 body is empty
 // @router /customer-token/verify [post]
-func (c *AuthenticationController) VerifyCustomerToken() {
+func (c *AuthenticationController) GetCustomerWithToken() {
 	var q requestsDTOs.VerifyTokenReq
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
