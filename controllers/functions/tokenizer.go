@@ -16,6 +16,7 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -28,8 +29,9 @@ func GenerateKey() ([]byte, error) {
 	return key, err
 }
 
-func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission) (string, int64, error) {
+func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission) (string, int64, string, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
+	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -39,18 +41,20 @@ func CreateAccessToken(userid string, username string, roleid string, rolename s
 			"rolename":    rolename,
 			"exp":         expiryTime,
 			"permissions": permssions,
+			"jti":         jti,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
-		return "", 0, err
+		return "", 0, "", err
 	}
 
-	return tokenString, expiryTime, nil
+	return tokenString, expiryTime, jti, nil
 }
 
-func CreateCustomerAccessToken(username string, category string) (string, int64, error) {
+func CreateCustomerAccessToken(username string, category string) (string, int64, string, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
+	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -59,14 +63,15 @@ func CreateCustomerAccessToken(username string, category string) (string, int64,
 			"exp":        expiryTime,
 			"category":   category,
 			"number":     username,
+			"jti":        jti,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
-		return "", 0, err
+		return "", 0, "", err
 	}
 
-	return tokenString, expiryTime, nil
+	return tokenString, expiryTime, jti, nil
 }
 
 func CreateRefreshToken(username string) (string, int64, error) {

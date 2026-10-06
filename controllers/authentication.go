@@ -188,7 +188,7 @@ func (c *AuthenticationController) LoginToken() {
 
 					// Create access token (15 minutes expiry)
 					useridstr := strconv.Itoa(int(a.Result.UserId))
-					token, expiryTime, err := functions.CreateAccessToken(useridstr, v.Username, roleStr, a.Result.Role.Role, permissions)
+					token, expiryTime, jti, err := functions.CreateAccessToken(useridstr, v.Username, roleStr, a.Result.Role.Role, permissions)
 
 					logs.Info("access Token created is ", token, "Expiry time is ", expiryTime)
 
@@ -211,7 +211,7 @@ func (c *AuthenticationController) LoginToken() {
 						logs.Info("Time now is ", time.Now().UTC())
 						tokenObj := models.AccessTokens{
 							User:         a.Result.UserId,
-							Token:        token,
+							Token:        jti,
 							ExpiresAt:    t,
 							DateCreated:  time.Now().UTC(),
 							DateModified: time.Now().UTC(),
@@ -335,7 +335,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 						}
 						useridstr := strconv.Itoa(int(userResp.Result.UserId))
-						accessToken, accessExpiryTime, err := functions.CreateAccessToken(useridstr, username, roleStr, roleResp.Role.Role, permissions)
+						accessToken, accessExpiryTime, jti, err := functions.CreateAccessToken(useridstr, username, roleStr, roleResp.Role.Role, permissions)
 						if err != nil {
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
@@ -346,7 +346,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 						accessTokenObj := models.AccessTokens{
 							User:         refreshTokenObj.User,
-							Token:        accessToken,
+							Token:        jti,
 							ExpiresAt:    time.Unix(accessExpiryTime, 0).UTC(),
 							IPAddress:    c.Ctx.Request.RemoteAddr,
 							DateCreated:  time.Now().UTC(),
@@ -474,7 +474,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 
 				c.Ctx.Output.SetStatus(200)
 
-				token, expiryTime, err := functions.CreateCustomerAccessToken(v.Username, "customer")
+				token, expiryTime, jti, err := functions.CreateCustomerAccessToken(v.Username, "customer")
 
 				logs.Info("Token created is ", token)
 
@@ -490,7 +490,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 					}
 					logs.Info("Old tokens revoked successfully. Generating new token...")
 					t := time.Unix(expiryTime, 0)
-					accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now(), LastUsedAt: time.Now()}
+					accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: jti, ExpiresAt: t, DateCreated: time.Now(), LastUsedAt: time.Now()}
 					if _, err := models.AddCustomer_access_tokens(accessTokenObj); err == nil {
 						logs.Info("Access token added successfully")
 						statusCode = 200
@@ -584,7 +584,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 			if customerResp, err := functions.GetCustomer(&c.Controller, requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(refreshTokenObj.Customer))}); err == nil {
 				if customerResp.StatusCode == 200 {
 					logs.Info("Refresh token is valid. Generating new access token...")
-					accessToken, accessExpiryTime, err := functions.CreateCustomerAccessToken(customerResp.Result.CustomerNumber, "customer")
+					accessToken, accessExpiryTime, jti, err := functions.CreateCustomerAccessToken(customerResp.Result.CustomerNumber, "customer")
 					if err != nil {
 						c.Data["json"] = err.Error()
 						c.ServeJSON()
@@ -593,7 +593,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 
 					accessTokenObj := models.Customer_access_tokens{
 						Customer:    refreshTokenObj.Customer,
-						Token:       accessToken,
+						Token:       jti,
 						ExpiresAt:   time.Unix(accessExpiryTime, 0),
 						Revoked:     false,
 						DateCreated: time.Now(),
