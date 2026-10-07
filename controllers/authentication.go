@@ -152,6 +152,8 @@ func (c *AuthenticationController) LoginToken() {
 	accessTokenObj := &models.AccessTokens{}
 	refreshTokenObj := &models.RefreshTokens{}
 	// userAgent := c.Ctx.Request.UserAgent()
+	accessToken := ""
+	refreshToken := ""
 
 	if a, err := functions.GetUserWithUsername(&c.Controller, requestsDTOs.GetUserWithUsernameRequest{Username: strings.Trim(v.Username, " ")}); err == nil && a.StatusCode == 200 {
 		// Compare the stored hashed password, with the hashed version of the password that was received
@@ -223,7 +225,7 @@ func (c *AuthenticationController) LoginToken() {
 							accessTokenObj = &tokenObj
 
 							// Create refresh token (7 days)
-							refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
+							refreshToken, refreshExpiryTime, jti, err := functions.CreateRefreshToken(v.Username)
 							if err != nil {
 								logs.Error("Error generating refresh token: ", err.Error())
 								c.Data["json"] = err.Error()
@@ -236,7 +238,7 @@ func (c *AuthenticationController) LoginToken() {
 							// Store refresh token
 							refreshTokenObj = &models.RefreshTokens{
 								User:         a.Result.UserId,
-								Token:        refreshToken,
+								Token:        jti,
 								ExpiresAt:    time.Unix(refreshExpiryTime, 0),
 								IPAddress:    ipAddress,
 								UserAgent:    "", //userAgent,
@@ -277,8 +279,8 @@ func (c *AuthenticationController) LoginToken() {
 		statusMessage = "Unidentified user"
 	}
 	var tokenResponse = responsesDTOs.TokenResponseDTO{
-		AccessToken:  accessTokenObj.Token,
-		RefreshToken: refreshTokenObj.Token,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
 		ExpiresIn:    3600,
 	}
@@ -497,7 +499,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 						statusMessage = "Access token generated successfully"
 
 						// Create refresh token (7 days)
-						refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
+						refreshToken, refreshExpiryTime, jti, err := functions.CreateRefreshToken(v.Username)
 						if err != nil {
 							logs.Error("Error generating refresh token: ", err.Error())
 							statusCode = 301
@@ -507,7 +509,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 							// Store refresh token
 							refreshTokenObj = &models.CustomerRefreshTokens{
 								Customer:     a.Customer,
-								Token:        refreshToken,
+								Token:        jti,
 								ExpiresAt:    time.Unix(refreshExpiryTime, 0),
 								IPAddress:    ipAddress,
 								UserAgent:    "", //userAgent,

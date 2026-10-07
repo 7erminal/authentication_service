@@ -1,7 +1,6 @@
 package functions
 
 import (
-	"authentication_service/models"
 	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
 	"crypto/aes"
@@ -74,20 +73,40 @@ func CreateCustomerAccessToken(username string, category string) (string, int64,
 	return tokenString, expiryTime, jti, nil
 }
 
-func CreateRefreshToken(username string) (string, int64, error) {
+func CreateRefreshToken(username string) (string, int64, string, error) {
+	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"username": username,
 			"exp":      expiryTime,
+			"jti":      jti,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
-		return "", 0, err
+		return "", 0, "", err
 	}
+	return tokenString, expiryTime, jti, nil
+	// return tokenString, expiryTime, nil
+}
 
-	return tokenString, expiryTime, nil
+func CreateCustomerRefreshToken(username string) (string, int64, string, error) {
+	jti := uuid.NewString()
+	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"username": username,
+			"exp":      expiryTime,
+			"jti":      jti,
+		})
+
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", 0, "", err
+	}
+	return tokenString, expiryTime, jti, nil
+	// return tokenString, expiryTime, nil
 }
 
 func VerifyToken(tokenString string) (bool, error) {
@@ -147,33 +166,23 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 			logs.Info("Valid token...")
 			if claims, claimsErr := GetAccessTokenClaims(token_); claimsErr == nil {
 				logs.Info("Decoded access token claims: username=", claims.Username, " roleid=", claims.RoleID, " rolename=", claims.RoleName, " permissions=", claims.Permissions)
+				logs.Info("Token claims successfully decoded")
 
-				if tokenObj, err := models.GetAccessTokensByToken(token_); err == nil {
-					logs.Info("Token fetched is ", tokenObj.Token)
-					logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-					logs.Info("Time now is ", time.Now().UTC())
-					logs.Info("Time now server is ", time.Now())
-
-					authUser := &responsesDTOs.AuthenticatedUser{
-						UserID:      claims.UserID,
-						Username:    claims.Username,
-						RoleID:      claims.RoleID,
-						RoleName:    claims.RoleName,
-						Permissions: claims.Permissions,
-					}
-					if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
-						logs.Info("Token is valid")
-						resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: authUser}
-						return resp, nil
-					} else {
-						logs.Info("Token has expired")
-						resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
-						return resp, nil
-					}
+				authUser := &responsesDTOs.AuthenticatedUser{
+					UserID:      claims.UserID,
+					Username:    claims.Username,
+					RoleID:      claims.RoleID,
+					RoleName:    claims.RoleName,
+					Permissions: claims.Permissions,
+				}
+				if claims.ExpiresAt.Unix() > time.Now().UTC().Unix() {
+					logs.Info("Token is valid")
+					resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: authUser}
+					return resp, nil
 				} else {
-					logs.Error("Token does not exist...", err.Error())
+					logs.Info("Token has expired")
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
-					return resp, err
+					return resp, nil
 				}
 
 			} else {
@@ -239,33 +248,22 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 			logs.Info("Valid token...")
 			if claims, claimsErr := GetCustomerAccessTokenClaims(token_); claimsErr == nil {
 				logs.Info("Decoded customer token claims: username=", claims.Username, " category=", claims.Category)
-
-				if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
-					logs.Info("Token fetched is ", tokenObj.Token)
-					logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-					logs.Info("Time now is ", time.Now().UTC())
-
-					if tokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() {
-						logs.Info("Token is valid")
-						authCustomer := &responsesDTOs.AuthenticatedCustomer{
-							CustomerId:       claims.CustomerId,
-							Username:         claims.Username,
-							Number:           claims.Number,
-							CustomerCategory: claims.Category,
-							ExpiryTime:       tokenObj.ExpiresAt.Unix(),
-						}
-						resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: authCustomer}
-						return resp, nil
-					} else {
-						logs.Info("Token has expired")
-						resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
-						return resp, nil
+				logs.Info("Checking token expiry against current time: ", time.Now().UTC().Unix())
+				if claims.ExpiresAt.Unix() > time.Now().UTC().Unix() {
+					logs.Info("Token is valid")
+					authCustomer := &responsesDTOs.AuthenticatedCustomer{
+						CustomerId:       claims.CustomerId,
+						Username:         claims.Username,
+						Number:           claims.Number,
+						CustomerCategory: claims.Category,
+						ExpiryTime:       claims.ExpiresAt.Unix(),
 					}
-
+					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: authCustomer}
+					return resp, nil
 				} else {
-					logs.Error("Token does not exist...", err.Error())
+					logs.Info("Token has expired")
 					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
-					return resp, err
+					return resp, nil
 				}
 			} else {
 				logs.Error("Error decoding customer token claims: ", claimsErr.Error())
