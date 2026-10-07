@@ -6,7 +6,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"strings"
@@ -26,6 +28,11 @@ func GenerateKey() ([]byte, error) {
 	key := make([]byte, 32) // 256-bit key
 	_, err := rand.Read(key)
 	return key, err
+}
+
+func HashToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
 }
 
 func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission) (string, int64, string, error) {
@@ -73,40 +80,46 @@ func CreateCustomerAccessToken(username string, category string) (string, int64,
 	return tokenString, expiryTime, jti, nil
 }
 
-func CreateRefreshToken(username string) (string, int64, string, error) {
-	jti := uuid.NewString()
+func CreateRefreshToken(username string) (string, int64) {
+	// jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"username": username,
-			"exp":      expiryTime,
-			"jti":      jti,
-		})
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+	// 	jwt.MapClaims{
+	// 		"username": username,
+	// 		"exp":      expiryTime,
+	// 		"jti":      jti,
+	// 	})
 
-	tokenString, err := token.SignedString(secretKey)
-	if err != nil {
-		return "", 0, "", err
-	}
-	return tokenString, expiryTime, jti, nil
+	// tokenString, err := token.SignedString(secretKey)
+	// if err != nil {
+	// 	return "", 0, "", err
+	// }
+	// return tokenString, expiryTime, jti, nil
 	// return tokenString, expiryTime, nil
+	b := make([]byte, 32)
+	rand.Read(b) // crypto/rand
+	return base64.URLEncoding.EncodeToString(b), expiryTime
 }
 
-func CreateCustomerRefreshToken(username string) (string, int64, string, error) {
-	jti := uuid.NewString()
+func CreateCustomerRefreshToken(username string) (string, int64) {
+	// jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"username": username,
-			"exp":      expiryTime,
-			"jti":      jti,
-		})
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+	// 	jwt.MapClaims{
+	// 		"username": username,
+	// 		"exp":      expiryTime,
+	// 		"jti":      jti,
+	// 	})
 
-	tokenString, err := token.SignedString(secretKey)
-	if err != nil {
-		return "", 0, "", err
-	}
-	return tokenString, expiryTime, jti, nil
+	// tokenString, err := token.SignedString(secretKey)
+	// if err != nil {
+	// 	return "", 0, "", err
+	// }
+	// return tokenString, expiryTime, jti, nil
 	// return tokenString, expiryTime, nil
+	b := make([]byte, 32)
+	rand.Read(b) // crypto/rand
+	return base64.URLEncoding.EncodeToString(b), expiryTime
 }
 
 func VerifyToken(tokenString string) (bool, error) {

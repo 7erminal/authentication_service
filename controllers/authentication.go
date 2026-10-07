@@ -223,22 +223,23 @@ func (c *AuthenticationController) LoginToken() {
 							statusCode = 200
 							statusMessage = "Access token generated successfully"
 							accessTokenObj = &tokenObj
+							accessToken = token
 
 							// Create refresh token (7 days)
-							refreshToken, refreshExpiryTime, jti, err := functions.CreateRefreshToken(v.Username)
-							if err != nil {
-								logs.Error("Error generating refresh token: ", err.Error())
-								c.Data["json"] = err.Error()
-								c.ServeJSON()
-								return
-							}
+							refreshToken_, refreshExpiryTime := functions.CreateRefreshToken(v.Username)
+							// if err != nil {
+							// 	logs.Error("Error generating refresh token: ", err.Error())
+							// 	c.Data["json"] = err.Error()
+							// 	c.ServeJSON()
+							// 	return
+							// }
 
-							logs.Info("Refresh token generated is ", refreshToken)
+							logs.Info("Refresh token generated is ", refreshToken_)
 
 							// Store refresh token
 							refreshTokenObj = &models.RefreshTokens{
 								User:         a.Result.UserId,
-								Token:        jti,
+								Token:        functions.HashToken(refreshToken_),
 								ExpiresAt:    time.Unix(refreshExpiryTime, 0),
 								IPAddress:    ipAddress,
 								UserAgent:    "", //userAgent,
@@ -253,6 +254,7 @@ func (c *AuthenticationController) LoginToken() {
 								c.ServeJSON()
 								return
 							}
+							refreshToken = refreshToken_
 							logs.Info("Refresh token saved successfully::  ", refreshTokenObj.Token)
 						} else {
 							logs.Error("Error adding token. ", err.Error())
@@ -313,7 +315,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 	logs.Info("About to go get refresh token")
 	// Validate refresh token
-	if refreshTokenObj, err := models.GetRefreshTokensByToken(refreshToken); err == nil {
+	if refreshTokenObj, err := models.GetRefreshTokensByToken(functions.HashToken(refreshToken)); err == nil {
 		logs.Info("Refresh token found in database ", refreshTokenObj.Token)
 		if refreshTokenObj.ExpiresAt.Unix() > time.Now().UTC().Unix() && !refreshTokenObj.Revoked {
 			if userResp, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: strconv.Itoa(int(refreshTokenObj.User))}); err == nil {
@@ -337,14 +339,14 @@ func (c *AuthenticationController) RefreshAccessToken() {
 
 						}
 						useridstr := strconv.Itoa(int(userResp.Result.UserId))
-						accessToken, accessExpiryTime, jti, err := functions.CreateAccessToken(useridstr, username, roleStr, roleResp.Role.Role, permissions)
+						accessToken_, accessExpiryTime, jti, err := functions.CreateAccessToken(useridstr, username, roleStr, roleResp.Role.Role, permissions)
 						if err != nil {
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
 							return
 						}
 
-						logs.Info("New access token generated is ", accessToken)
+						logs.Info("New access token generated is ", accessToken_)
 
 						accessTokenObj := models.AccessTokens{
 							User:         refreshTokenObj.User,
@@ -364,7 +366,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 						}
 
 						var tokenResponse = responsesDTOs.TokenResponseDTO{
-							AccessToken:  accessToken,
+							AccessToken:  accessToken_,
 							RefreshToken: refreshToken, // Return same refresh token
 							TokenType:    "Bearer",
 							ExpiresIn:    900,
@@ -458,6 +460,8 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 	statusMessage := "Failed"
 	accessTokenObj := &models.Customer_access_tokens{}
 	refreshTokenObj := &models.CustomerRefreshTokens{}
+	accessToken := ""
+	refreshToken := ""
 
 	if a, err := models.GetCustomer_credentialsByCustomerUsername(trimUsername); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
@@ -497,37 +501,35 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 						logs.Info("Access token added successfully")
 						statusCode = 200
 						statusMessage = "Access token generated successfully"
+						accessToken = token
 
 						// Create refresh token (7 days)
-						refreshToken, refreshExpiryTime, jti, err := functions.CreateRefreshToken(v.Username)
-						if err != nil {
-							logs.Error("Error generating refresh token: ", err.Error())
+						refreshToken_, refreshExpiryTime := functions.CreateRefreshToken(v.Username)
+
+						logs.Info("Refresh Token created is ", refreshToken_)
+						// Store refresh token
+						refreshTokenObj = &models.CustomerRefreshTokens{
+							Customer:     a.Customer,
+							Token:        functions.HashToken(refreshToken_),
+							ExpiresAt:    time.Unix(refreshExpiryTime, 0),
+							IPAddress:    ipAddress,
+							UserAgent:    "", //userAgent,
+							AccessToken:  accessTokenObj,
+							DateCreated:  time.Now(),
+							DateModified: time.Now(),
+						}
+
+						if _, err := models.AddCustomerRefreshTokens(refreshTokenObj); err != nil {
+							logs.Error("Error saving refresh token: ", err.Error())
 							statusCode = 301
 							statusMessage = "Error generating token"
 						} else {
-							logs.Info("Refresh Token created is ", refreshToken)
-							// Store refresh token
-							refreshTokenObj = &models.CustomerRefreshTokens{
-								Customer:     a.Customer,
-								Token:        jti,
-								ExpiresAt:    time.Unix(refreshExpiryTime, 0),
-								IPAddress:    ipAddress,
-								UserAgent:    "", //userAgent,
-								AccessToken:  accessTokenObj,
-								DateCreated:  time.Now(),
-								DateModified: time.Now(),
-							}
-
-							if _, err := models.AddCustomerRefreshTokens(refreshTokenObj); err != nil {
-								logs.Error("Error saving refresh token: ", err.Error())
-								statusCode = 301
-								statusMessage = "Error generating token"
-							} else {
-								logs.Info("Refresh token added successfully")
-								statusCode = 200
-								statusMessage = "Tokens generated successfully"
-							}
+							logs.Info("Refresh token added successfully")
+							refreshToken = refreshToken_
+							statusCode = 200
+							statusMessage = "Tokens generated successfully"
 						}
+
 					} else {
 						logs.Error("Error adding token. ", err.Error())
 						statusCode = 301
@@ -548,8 +550,8 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 	}
 
 	var tokenResponse = responsesDTOs.TokenResponseDTO{
-		AccessToken:  accessTokenObj.Token,
-		RefreshToken: refreshTokenObj.Token,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
 		ExpiresIn:    3600,
 	}
