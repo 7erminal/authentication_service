@@ -117,7 +117,7 @@ type Roles struct {
 
 type Users struct {
 	UserId        string
-	UserType      int
+	UserType      string
 	UserDetails   *UserExtraDetails
 	ImagePath     string
 	FullName      string
