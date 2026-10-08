@@ -190,7 +190,10 @@ func (c *AuthenticationController) LoginToken() {
 
 					// Create access token (15 minutes expiry)
 					useridstr := a.Result.UserId
-					branchId := a.Result.UserDetails.Branch.BranchId
+					branchId := ""
+					if a.Result.UserDetails.Branch != nil {
+						branchId = a.Result.UserDetails.Branch.BranchId
+					}
 					token, expiryTime, jti, err := functions.CreateAccessToken(useridstr, v.Username, roleStr, a.Result.Role.Role, permissions, branchId, a.Result.UserDetails.Shop.ShopId)
 					logs.Info("access Token created is ", token, "Expiry time is ", expiryTime)
 
