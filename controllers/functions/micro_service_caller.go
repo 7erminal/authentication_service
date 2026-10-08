@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"strconv"
 	"strings"
 
 	"github.com/beego/beego/v2/core/logs"
@@ -292,7 +291,7 @@ func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPassword
 
 	request := api.NewRequest(
 		host,
-		"/v1/users/password/"+strconv.FormatInt(req.UserId, 10),
+		"/v1/users/password/"+req.UserId,
 		api.PUT)
 	if request.InterfaceParams == nil {
 		request.InterfaceParams = map[string]interface{}{}

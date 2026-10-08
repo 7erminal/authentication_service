@@ -682,14 +682,13 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 // @router /change-password/:id [put]
 func (c *AuthenticationController) ChangePassword() {
 	idStr := c.Ctx.Input.Param(":id")
-	id, _ := strconv.ParseInt(idStr, 0, 64)
 
 	var v requestsDTOs.ChangePassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
 	logs.Info("Received ", v.OldPassword, v.NewPassword)
 
-	if a, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: strconv.FormatInt(id, 10)}); err == nil {
+	if a, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: idStr}); err == nil {
 		if a.StatusCode == 200 {
 			// Compare the stored hashed password, with the hashed version of the password that was received
 			if err := bcrypt.CompareHashAndPassword([]byte(a.Result.Password), []byte(v.OldPassword)); err != nil {
@@ -717,7 +716,7 @@ func (c *AuthenticationController) ChangePassword() {
 				}
 
 				if _, err := functions.UpdateUserPassword(&c.Controller, requestsDTOs.UpdateUserPasswordRequest{
-					UserId:      id,
+					UserId:      idStr,
 					OldPassword: v.OldPassword,
 					NewPassword: v.NewPassword,
 				}); err == nil {
@@ -753,7 +752,7 @@ func (c *AuthenticationController) ChangePassword() {
 // @router /reset-password/:id [put]
 func (c *AuthenticationController) ResetPassword() {
 	idStr := c.Ctx.Input.Param(":id")
-	id, _ := strconv.ParseInt(idStr, 0, 64)
+	// id, _ := strconv.ParseInt(idStr, 0, 64)
 
 	var v requestsDTOs.ResetPassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
@@ -762,7 +761,7 @@ func (c *AuthenticationController) ResetPassword() {
 
 	logs.Info("About to decrypt token")
 
-	if a, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: strconv.FormatInt(id, 10)}); err == nil {
+	if a, err := functions.GetUser(&c.Controller, requestsDTOs.GetUserRequest{UserId: idStr}); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
 		if a.StatusCode == 200 {
@@ -781,7 +780,7 @@ func (c *AuthenticationController) ResetPassword() {
 			}
 
 			if _, err := functions.UpdateUserPassword(&c.Controller, requestsDTOs.UpdateUserPasswordRequest{
-				UserId:      id,
+				UserId:      idStr,
 				OldPassword: a.Result.Password,
 				NewPassword: v.NewPassword,
 			}); err == nil {
@@ -975,7 +974,7 @@ func (c *AuthenticationController) AddCustomerCredential() {
 	statusCode := 401
 	statusDesc := "Unauthorized"
 
-	if customer, err := functions.GetCustomer(&c.Controller, requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(v.CustomerId))}); err == nil {
+	if customer, err := functions.GetCustomer(&c.Controller, requestsDTOs.GetCustomerRequest{CustomerId: v.CustomerId}); err == nil {
 		if customer.StatusCode == 200 {
 			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.Password), 8)
 			if errr != nil {
@@ -1001,8 +1000,9 @@ func (c *AuthenticationController) AddCustomerCredential() {
 			// 	return
 			// }
 
+			custIdInt, _ := strconv.ParseInt(v.CustomerId, 10, 64)
 			ccredential := models.Customer_credentials{
-				Customer:     v.CustomerId,
+				Customer:     custIdInt,
 				Username:     v.Username,
 				Password:     string(hashedPassword),
 				Pin:          v.Pin,
