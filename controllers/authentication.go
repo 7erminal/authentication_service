@@ -177,7 +177,7 @@ func (c *AuthenticationController) LoginToken() {
 
 				logs.Info("Successfully validated credentials")
 
-				roleStr := a.Result.Role.RoleId
+				roleStr := a.Result.Role.Role
 				if roleResp, err := functions.GetRole(&c.Controller, roleStr); err == nil && roleResp.StatusCode == 200 {
 					logs.Info("Role fetched successfully: ", roleResp.Role)
 
