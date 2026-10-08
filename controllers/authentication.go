@@ -265,7 +265,6 @@ func (c *AuthenticationController) LoginToken() {
 							statusCode = 301
 							statusMessage = "Error generating token"
 						}
-
 					}
 				} else {
 					logs.Error("Error fetching role: ", err.Error())
