@@ -177,7 +177,7 @@ func (c *AuthenticationController) LoginToken() {
 
 				logs.Info("Successfully validated credentials")
 
-				roleStr := strconv.FormatInt(a.Result.Role.RoleId, 10)
+				roleStr := a.Result.Role.RoleId
 				if roleResp, err := functions.GetRole(&c.Controller, roleStr); err == nil && roleResp.StatusCode == 200 {
 					logs.Info("Role fetched successfully: ", roleResp.Role)
 
@@ -189,9 +189,8 @@ func (c *AuthenticationController) LoginToken() {
 					}
 
 					// Create access token (15 minutes expiry)
-					useridstr := strconv.Itoa(int(a.Result.UserId))
-					token, expiryTime, jti, err := functions.CreateAccessToken(useridstr, v.Username, roleStr, a.Result.Role.Role, permissions)
-
+					useridstr := a.Result.UserId
+					token, expiryTime, jti, err := functions.CreateAccessToken(useridstr, v.Username, roleStr, a.Result.Role.Role, permissions, "")
 					logs.Info("access Token created is ", token, "Expiry time is ", expiryTime)
 
 					if err != nil {
@@ -202,7 +201,8 @@ func (c *AuthenticationController) LoginToken() {
 						c.Data["json"] = resp
 					} else {
 						// Revoke old tokens for this user
-						updateToken := models.AccessTokens{User: a.Result.UserId, Revoked: true}
+						userID, _ := strconv.ParseInt(a.Result.UserId, 10, 64)
+						updateToken := models.AccessTokens{User: userID, Revoked: true}
 						if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
 							logs.Error("Error revoking old tokens. ", err.Error())
 						}
@@ -212,7 +212,7 @@ func (c *AuthenticationController) LoginToken() {
 						logs.Info("Time object created is ", t)
 						logs.Info("Time now is ", time.Now().UTC())
 						tokenObj := models.AccessTokens{
-							User:         a.Result.UserId,
+							User:         userID,
 							Token:        jti,
 							ExpiresAt:    t,
 							DateCreated:  time.Now().UTC(),
@@ -238,7 +238,7 @@ func (c *AuthenticationController) LoginToken() {
 
 							// Store refresh token
 							refreshTokenObj = &models.RefreshTokens{
-								User:         a.Result.UserId,
+								User:         userID,
 								Token:        functions.HashToken(refreshToken_),
 								ExpiresAt:    time.Unix(refreshExpiryTime, 0),
 								IPAddress:    ipAddress,
@@ -328,7 +328,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 						username = userResp.Result.Email
 						logs.Info("Using email as username ", username)
 					}
-					roleStr := strconv.FormatInt(userResp.Result.Role.RoleId, 10)
+					roleStr := userResp.Result.Role.RoleId
 					if roleResp, err := functions.GetRole(&c.Controller, roleStr); err == nil && roleResp.StatusCode == 200 {
 						logs.Info("Role fetched successfully: ", roleResp.Role)
 
@@ -338,8 +338,8 @@ func (c *AuthenticationController) RefreshAccessToken() {
 							permissions = append(permissions, responsesDTOs.UserPermission{PermissionCode: perm.Permission.PermissionCode, ActionCode: perm.Action.Action})
 
 						}
-						useridstr := strconv.Itoa(int(userResp.Result.UserId))
-						accessToken_, accessExpiryTime, jti, err := functions.CreateAccessToken(useridstr, username, roleStr, roleResp.Role.Role, permissions)
+						useridstr := userResp.Result.UserId
+						accessToken_, accessExpiryTime, jti, err := functions.CreateAccessToken(useridstr, username, roleStr, roleResp.Role.Role, permissions, userResp.Result.UserDetails.Branch.BranchId)
 						if err != nil {
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
@@ -824,7 +824,8 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 	if a, err := functions.GetCustomer(&c.Controller, req); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
-		if custCred, err := models.GetCustomer_credentialsByCustomerId(a.Result.CustomerId); err == nil {
+		customerID, _ := strconv.ParseInt(a.Result.CustomerId, 10, 64)
+		if custCred, err := models.GetCustomer_credentialsByCustomerId(customerID); err == nil {
 			logs.Info("Customer credentials found")
 			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
@@ -891,7 +892,8 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
 		if a.StatusCode == 200 {
-			if custCred, err := models.GetCustomer_credentialsByCustomerId(a.Result.CustomerId); err == nil {
+			customerID, _ := strconv.ParseInt(a.Result.CustomerId, 10, 64)
+			if custCred, err := models.GetCustomer_credentialsByCustomerId(customerID); err == nil {
 				if err := bcrypt.CompareHashAndPassword([]byte(custCred.Password), []byte(v.OldPassword)); err != nil {
 					// If the two passwords don't match, return a 401 status
 					c.Data["json"] = err.Error()
@@ -1085,7 +1087,8 @@ func (c *AuthenticationController) Put() {
 			return
 		}
 
-		if customerC, err := models.GetCustomer_credentialsByCustomerId(customer.Result.CustomerId); err == nil {
+		customerID, _ := strconv.ParseInt(customer.Result.CustomerId, 10, 64)
+		if customerC, err := models.GetCustomer_credentialsByCustomerId(customerID); err == nil {
 
 			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.Password), 8)
 			if errr != nil {
@@ -1113,7 +1116,7 @@ func (c *AuthenticationController) Put() {
 
 			ccredential := models.Customer_credentials{
 				Id:           customerC.Id,
-				Customer:     customer.Result.CustomerId,
+				Customer:     customerID,
 				Username:     v.Username,
 				Password:     string(hashedPassword),
 				Pin:          v.Pin,
@@ -1282,7 +1285,8 @@ func (c *AuthenticationController) VerifyOTP() {
 		// Get OTP
 		if v.StatusCode == 200 {
 			logs.Debug("Got user. Now checking for user in OTP table ", v.Result.UserId, v.Result.Email, v.Result.FullName)
-			otp, err := models.VerifyUserOTP(v.Result.UserId)
+			userID, _ := strconv.ParseInt(v.Result.UserId, 10, 64)
+			otp, err := models.VerifyUserOTP(userID)
 
 			logs.Debug("User in OTP table ")
 
@@ -1323,7 +1327,7 @@ func (c *AuthenticationController) VerifyOTP() {
 				c.Data["json"] = resp
 			}
 		} else {
-			logs.Debug("Error: ", err.Error(), " User not in OTP Table ")
+			logs.Debug("Error: User not in OTP Table")
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 403, Result: nil, StatusDesc: "OTP Expired"}
 			c.Data["json"] = resp
 		}
@@ -1375,7 +1379,8 @@ func (c *AuthenticationController) ResendOTP() {
 
 			expiryDate := time.Now().Local().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(5) + time.Second*time.Duration(0))
 
-			otpModel := models.UserOtps{Code: randNum, UserId: v.Result.UserId, Status: 2, DateCreated: time.Now(), DateModified: time.Now(), DateGenerated: time.Now(), ExpiryDate: expiryDate, Active: 1}
+			userID, _ := strconv.ParseInt(v.Result.UserId, 10, 64)
+			otpModel := models.UserOtps{Code: randNum, UserId: userID, Status: 2, DateCreated: time.Now(), DateModified: time.Now(), DateGenerated: time.Now(), ExpiryDate: expiryDate, Active: 1}
 
 			if _, err := models.AddUserOtp(&otpModel); err == nil {
 				functions.SendEmail(v.Result.Email, randNum)
@@ -1388,7 +1393,7 @@ func (c *AuthenticationController) ResendOTP() {
 				c.Data["json"] = resp
 			}
 		} else {
-			logs.Error(err.Error())
+			logs.Error("User not found or error retrieving user")
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Unidentified user"}
 			c.Data["json"] = resp
 		}
@@ -1624,7 +1629,8 @@ func (c *AuthenticationController) GetUserFromToken() {
 			return
 		}
 
-		if tokenObj.User != requestUser.UserId {
+		reqUserID, _ := strconv.ParseInt(requestUser.UserId, 10, 64)
+		if tokenObj.User != reqUserID {
 			c.Ctx.Output.SetStatus(401)
 			c.Data["json"] = responsesDTOs.UserResponseDTO{
 				StatusCode: 605,

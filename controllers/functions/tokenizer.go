@@ -35,7 +35,7 @@ func HashToken(token string) string {
 	return hex.EncodeToString(h[:])
 }
 
-func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission) (string, int64, string, error) {
+func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission, branchId string) (string, int64, string, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
@@ -48,6 +48,7 @@ func CreateAccessToken(userid string, username string, roleid string, rolename s
 			"exp":         expiryTime,
 			"permissions": permssions,
 			"jti":         jti,
+			"branchId":    branchId,
 		})
 
 	tokenString, err := token.SignedString(secretKey)

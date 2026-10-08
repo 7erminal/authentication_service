@@ -5,7 +5,7 @@ import (
 )
 
 type Currencies struct {
-	CurrencyId   int64
+	CurrencyId   string
 	Symbol       string
 	Currency     string
 	Active       int
@@ -16,7 +16,7 @@ type Currencies struct {
 }
 
 type Countries struct {
-	CountryId       int64
+	CountryId       string
 	Country         string
 	Description     string
 	CountryCode     string
@@ -28,7 +28,7 @@ type Countries struct {
 }
 
 type Branches struct {
-	BranchId     int64
+	BranchId     string
 	Branch       string
 	Country      int64
 	Location     string
@@ -41,7 +41,7 @@ type Branches struct {
 }
 
 type Shops struct {
-	ShopId              int64 `orm:"auto"`
+	ShopId              string `orm:"auto"`
 	ShopName            string
 	ShopDescription     string `orm:"size(255)"`
 	ShopAssistantName   string `orm:"size(100)"`
@@ -57,7 +57,7 @@ type Shops struct {
 }
 
 type UserExtraDetails struct {
-	UserDetailsId int64
+	UserDetailsId string
 	Branch        *Branches
 	Shop          *Shops
 	Nickname      string
@@ -69,7 +69,7 @@ type UserExtraDetails struct {
 }
 
 type Actions struct {
-	ActionId     int64
+	ActionId     string
 	Action       string
 	Description  string
 	DateCreated  time.Time
@@ -80,7 +80,7 @@ type Actions struct {
 }
 
 type Permissions struct {
-	PermissionId          int64
+	PermissionId          string
 	Permission            string
 	PermissionCode        string
 	PermissionDescription string
@@ -92,7 +92,7 @@ type Permissions struct {
 }
 
 type Role_permissions struct {
-	RolePermissionId int64
+	RolePermissionId string
 	Role             *Roles
 	Permission       *Permissions
 	Action           *Actions
@@ -104,7 +104,7 @@ type Role_permissions struct {
 }
 
 type Roles struct {
-	RoleId          int64
+	RoleId          string
 	Role            string
 	Description     string
 	DateCreated     time.Time
@@ -116,7 +116,7 @@ type Roles struct {
 }
 
 type Users struct {
-	UserId        int64 `orm:"auto"`
+	UserId        string
 	UserType      int
 	UserDetails   *UserExtraDetails
 	ImagePath     string
@@ -188,7 +188,7 @@ type UserPermission struct {
 }
 
 type Identification_types struct {
-	IdentificationTypeId int64
+	IdentificationTypeId string
 	Name                 string
 	Code                 string
 	DateCreated          time.Time
@@ -199,7 +199,7 @@ type Identification_types struct {
 }
 
 type Customer_categories struct {
-	CustomerCategoryId int64
+	CustomerCategoryId string
 	Category           string
 	Description        string
 	DateCreated        time.Time
@@ -210,7 +210,7 @@ type Customer_categories struct {
 }
 
 type Customer_emergency_contacts struct {
-	CustomerEmergencyContactId int64
+	CustomerEmergencyContactId string
 	Name                       string
 	Contact                    string
 	Customer                   *Customers
@@ -221,7 +221,7 @@ type Customer_emergency_contacts struct {
 }
 
 type Customer_guarantors struct {
-	CustomerGuarantorId int64
+	CustomerGuarantorId string
 	Name                string
 	Contact             string
 	Customer            *Customers
@@ -232,7 +232,7 @@ type Customer_guarantors struct {
 }
 
 type Customers struct {
-	CustomerId           int64
+	CustomerId           string
 	CustomerNumber       string
 	FullName             string
 	ImagePath            string
