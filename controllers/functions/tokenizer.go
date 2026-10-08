@@ -35,7 +35,7 @@ func HashToken(token string) string {
 	return hex.EncodeToString(h[:])
 }
 
-func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission, branchId string) (string, int64, string, error) {
+func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission, branchId string, shop string) (string, int64, string, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
@@ -49,6 +49,7 @@ func CreateAccessToken(userid string, username string, roleid string, rolename s
 			"permissions": permssions,
 			"jti":         jti,
 			"branchId":    branchId,
+			"shop":        shop,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
@@ -59,18 +60,20 @@ func CreateAccessToken(userid string, username string, roleid string, rolename s
 	return tokenString, expiryTime, jti, nil
 }
 
-func CreateCustomerAccessToken(username string, category string) (string, int64, string, error) {
+func CreateCustomerAccessToken(customerid string, username string, category string, branchid string, shop string) (string, int64, string, error) {
 	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"customerId": username,
+			"customerId": customerid,
 			"username":   username,
 			"exp":        expiryTime,
 			"category":   category,
-			"number":     username,
+			"number":     customerid,
 			"jti":        jti,
+			"branchId":   branchid,
+			"shop":       shop,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
@@ -188,6 +191,9 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 					RoleID:      claims.RoleID,
 					RoleName:    claims.RoleName,
 					Permissions: claims.Permissions,
+					BranchID:    claims.BranchID,
+					Shop:        claims.Shop,
+					ExpiryTime:  claims.ExpiresAt.Unix(),
 				}
 				if claims.ExpiresAt.Unix() > time.Now().UTC().Unix() {
 					logs.Info("Token is valid")
@@ -270,6 +276,8 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 						Username:         claims.Username,
 						Number:           claims.Number,
 						CustomerCategory: claims.Category,
+						Shop:             claims.Shop,
+						BranchID:         claims.BranchID,
 						ExpiryTime:       claims.ExpiresAt.Unix(),
 					}
 					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: authCustomer}

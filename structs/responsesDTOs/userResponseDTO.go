@@ -282,7 +282,9 @@ type AuthenticatedUser struct {
 	RoleID      string
 	RoleName    string
 	ExpiryTime  int64
+	BranchID    string
 	Permissions []UserPermission
+	Shop        string
 }
 
 type AuthenticatedCustomer struct {
@@ -291,4 +293,6 @@ type AuthenticatedCustomer struct {
 	Number           string
 	CustomerCategory string
 	ExpiryTime       int64
+	BranchID         string
+	Shop             string
 }

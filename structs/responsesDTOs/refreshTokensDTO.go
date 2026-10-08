@@ -28,6 +28,8 @@ type AccessTokenClaims struct {
 	RoleID      string           `json:"roleid"`
 	RoleName    string           `json:"rolename"`
 	Permissions []UserPermission `json:"permissions"`
+	BranchID    string           `json:"branchid"`
+	Shop        string           `json:"shop"`
 	jwt.RegisteredClaims
 }
 
@@ -37,6 +39,8 @@ type CustomerAccessTokenClaims struct {
 	Category   string `json:"category"`
 	Number     string `json:"number"`
 	ExpiryTime int64  `json:"expirytime"`
+	BranchID   string `json:"branchid"`
+	Shop       string `json:"shop"`
 	jwt.RegisteredClaims
 }
 
