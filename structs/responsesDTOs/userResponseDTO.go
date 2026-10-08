@@ -5,32 +5,22 @@ import (
 )
 
 type Currencies struct {
-	CurrencyId   string
-	Symbol       string
-	Currency     string
-	Active       int
-	DateCreated  time.Time
-	DateModified time.Time
-	CreatedBy    int
-	ModifiedBy   int
+	CurrencyId string
+	Symbol     string
+	Currency   string
 }
 
 type Countries struct {
-	CountryId       string
-	Country         string
-	Description     string
-	CountryCode     string
-	DefaultCurrency int64
-	DateCreated     time.Time
-	DateModified    time.Time
-	CreatedBy       int
-	ModifiedBy      int
+	CountryId   string
+	Country     string
+	CountryCode string
+	Currency    *Currencies
 }
 
 type Branches struct {
 	BranchId     string
 	Branch       string
-	Country      int64
+	Country      *Countries
 	Location     string
 	PhoneNumber  string
 	Active       int
