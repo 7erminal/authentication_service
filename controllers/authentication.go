@@ -383,6 +383,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 		logs.Info("Customer credentials fetched")
 		if a.Active == 1 {
+			logs.Info("Password is ", v.Password)
 			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
 				// If the two passwords don't match, return a 401 status
 				logs.Info("Password hash is ", a.Password)
