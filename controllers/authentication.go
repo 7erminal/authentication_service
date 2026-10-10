@@ -385,7 +385,8 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 		if a.Active == 1 {
 			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
 				// If the two passwords don't match, return a 401 status
-				logs.Info("Password incorrect")
+				logs.Info("Password hash is ", a.Password)
+				logs.Error("Password incorrect")
 				c.Data["json"] = err.Error()
 
 				logs.Error(err.Error())
