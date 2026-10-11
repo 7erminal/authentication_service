@@ -17,6 +17,7 @@ type Customer_credentials struct {
 	Username     string     `orm:"size(255)"`
 	Password     string     `orm:"size(255)"`
 	Pin          string     `orm:"size(10)"`
+	ClientCode   string     `orm:"size(255)"`
 	DateCreated  time.Time  `orm:"type(datetime)"`
 	DateModified time.Time  `orm:"type(datetime)"`
 	CreatedBy    int
@@ -69,6 +70,16 @@ func GetCustomer_credentialsByCustomerUsername(username string) (v *Customer_cre
 	o := orm.NewOrm()
 	v = &Customer_credentials{}
 	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).RelatedSel().One(v); err == nil {
+		return v, nil
+	}
+	return nil, err
+}
+
+func GetCustomer_credentialsByCustomerUsernameAndClientCode(username string, clientCode string) (v *Customer_credentials, err error) {
+	logs.Info("Fetching customer credentials by username:", username)
+	o := orm.NewOrm()
+	v = &Customer_credentials{}
+	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).Filter("ClientCode", clientCode).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err

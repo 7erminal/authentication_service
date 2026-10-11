@@ -371,6 +371,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 	ipAddress := c.Ctx.Request.RemoteAddr
 
 	logs.Info("IP Address ", ipAddress)
+	clientCode := c.Ctx.Input.Header("clientCode")
 
 	trimUsername := strings.TrimSpace(v.Username)
 
@@ -379,7 +380,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 	accessTokenObj := &models.Customer_access_tokens{}
 	refreshTokenObj := &models.CustomerRefreshTokens{}
 
-	if a, err := models.GetCustomer_credentialsByCustomerUsername(trimUsername); err == nil {
+	if a, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(trimUsername, clientCode); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 		logs.Info("Customer credentials fetched")
 		if a.Active == 1 {
@@ -463,9 +464,16 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 			c.Data["json"] = resp
 		}
 	} else {
-		logs.Error(err.Error())
-		statusCode = 605
-		statusMessage = "Unidentified customer"
+		if a, err := models.GetCustomer_credentialsByCustomerUsername(trimUsername); err == nil {
+			if a.ClientCode == "" {
+				statusCode = 213
+				statusMessage = "User Exists but not mapped to a client"
+			}
+		} else {
+			logs.Error(err.Error())
+			statusCode = 605
+			statusMessage = "Unidentified customer"
+		}
 	}
 
 	var tokenResponse = responsesDTOs.TokenResponseDTO{
