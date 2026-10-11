@@ -753,10 +753,11 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 // @Param	body		body 	requestsDTOs.ChangePassword	true		"body for Change password content"
 // @Success 201 {object} models.UserResponseDTO
 // @Failure 403 body is empty
-// @router /change-customer-password/:id [put]
+// @router /change-customer-password/:username [put]
 func (c *AuthenticationController) ChangeCustomerPassword() {
-	idStr := c.Ctx.Input.Param(":id")
-	id, _ := strconv.ParseInt(idStr, 0, 64)
+	username := c.Ctx.Input.Param(":username")
+
+	clientCode := c.Ctx.Input.Header("ClientCode")
 
 	var v requestsDTOs.ChangePassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
@@ -765,53 +766,102 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 
 	logs.Info("About to decrypt token")
 
-	if a, err := models.GetCustomersById(id); err == nil {
-		// Compare the stored hashed password, with the hashed version of the password that was received
+	statusCode := 605
+	statusMessage := "Internal server error"
+	// Compare the stored hashed password, with the hashed version of the password that was received
 
-		if custCred, err := models.GetCustomer_credentialsByCustomerId(*a); err == nil {
-			if err := bcrypt.CompareHashAndPassword([]byte(custCred.Password), []byte(v.OldPassword)); err != nil {
-				// If the two passwords don't match, return a 401 status
-				c.Data["json"] = err.Error()
+	if custCred, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(username, clientCode); err == nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(custCred.Password), []byte(v.OldPassword)); err != nil {
+			// If the two passwords don't match, return a 401 status
+			c.Data["json"] = err.Error()
 
-				logs.Error(err.Error())
+			logs.Error(err.Error())
+			statusCode = 601
+			statusMessage = "Old password does not match"
 
-				var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Old password does not match"}
-				c.Data["json"] = resp
+			var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
+			c.Data["json"] = resp
 
+		} else {
+			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+
+			if errr == nil {
+				logs.Debug(hashedPassword)
+
+				custCred.Password = string(hashedPassword)
+				custCred.DateModified = time.Now()
+
+				logs.Debug("Sending", v.NewPassword)
+
+				// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
 			} else {
-				hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+				logs.Error("Error hashing password ", errr.Error())
+			}
 
-				if errr == nil {
-					logs.Debug(hashedPassword)
+			if err := models.UpdateCustomer_credentialsById(custCred); err == nil {
+				c.Ctx.Output.SetStatus(200)
 
-					custCred.Password = string(hashedPassword)
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "Customer password has been changed successfully"}
+				c.Data["json"] = resp
+			} else {
+				statusCode = 608
+				statusMessage = "Customer password reset failed. " + err.Error()
+				var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
+				c.Data["json"] = resp
+			}
+		}
+	} else {
+		// 	query map[string]string, fields []string, sortby []string, order []string,
+		// offset int64, limit int64
+		query := map[string]string{"username": username}
+		if custCreds, err := models.GetAllCustomer_credentials(query, nil, nil, nil, 0, 1); err == nil {
+			if len(custCreds) > 0 {
+				for _, custCred := range custCreds {
+					// Process each customer credential as needed
+					custModel := custCred.(models.Customer_credentials)
+					if err := bcrypt.CompareHashAndPassword([]byte(custModel.Password), []byte(v.OldPassword)); err != nil {
+						// If the two passwords don't match, return a 401 status
+						c.Data["json"] = err.Error()
 
-					logs.Debug("Sending", v.NewPassword)
+						logs.Error(err.Error())
+						statusCode = 601
+						statusMessage = "Old password does not match"
 
-					// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
-				} else {
-					logs.Error("Error hashing password ", errr.Error())
-				}
+						var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
+						c.Data["json"] = resp
 
-				if err := models.UpdateCustomer_credentialsById(custCred); err == nil {
-					c.Ctx.Output.SetStatus(200)
-
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "Successfully changed password", StatusDesc: "Customer password has been changed successfully"}
-					c.Data["json"] = resp
-				} else {
-					var resp = responsesDTOs.StringResponseDTO{StatusCode: 608, Value: "", StatusDesc: "Customer password reset failed. " + err.Error()}
-					c.Data["json"] = resp
+					} else {
+						hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
+						if errr == nil {
+							custModel.Password = string(hashedPassword)
+							custModel.DateModified = time.Now()
+							custModel.ClientCode = clientCode
+						} else {
+							logs.Error("Error hashing password ", errr.Error())
+						}
+						if err := models.UpdateCustomer_credentialsById(&custModel); err != nil {
+							logs.Error("Error updating customer credentials ", err.Error())
+							statusCode = 608
+							statusMessage = "Customer password reset failed. " + err.Error()
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
+							c.Data["json"] = resp
+						} else {
+							statusCode = 200
+							statusMessage = "Customer password has been changed successfully"
+							var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "Successfully changed password", StatusDesc: statusMessage}
+							c.Data["json"] = resp
+							break
+						}
+					}
 				}
 			}
 		} else {
-			logs.Error(err.Error())
-			var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified customer"}
-			c.Data["json"] = resp
-		}
 
-	} else {
+		}
 		logs.Error(err.Error())
-		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified Customer"}
+		statusCode = 605
+		statusMessage = "Unidentified customer"
+		var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
 		c.Data["json"] = resp
 	}
 
