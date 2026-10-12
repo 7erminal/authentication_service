@@ -774,6 +774,8 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 	logs.Info("Received ", v.NewPassword)
 
 	logs.Info("About to decrypt token")
+	logs.Info("Sending username ", username)
+	logs.Info("Sending client code ", clientCode)
 
 	statusCode := 605
 	statusMessage := "Internal server error"
