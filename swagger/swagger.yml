@@ -12,6 +12,33 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 basePath: /v1
 paths:
+  /auth/change-customer-password/{username}:
+    put:
+      tags:
+      - auth
+      description: |-
+        Change customer password
+        <br>
+      operationId: AuthenticationController.Change Customer Password
+      parameters:
+      - in: path
+        name: username
+        description: The username for which to change password
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Change password content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.ChangePassword'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
   /auth/change-password/{id}:
     put:
       tags:
@@ -171,6 +198,50 @@ paths:
             $ref: '#/definitions/models.UserResponseDTO'
         "403":
           description: body is empty
+  /auth/refresh/customer/token:
+    post:
+      tags:
+      - auth
+      description: |-
+        Refresh Access Token
+        <br>
+      operationId: AuthenticationController.Refresh Customer Access Token
+      parameters:
+      - in: body
+        name: body
+        description: body for Authentication content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuthenticationDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
+  /auth/refresh/user/token:
+    post:
+      tags:
+      - auth
+      description: |-
+        Refresh Access Token
+        <br>
+      operationId: AuthenticationController.Refresh Access Token
+      parameters:
+      - in: body
+        name: body
+        description: body for Authentication content
+        required: true
+        schema:
+          $ref: '#/definitions/models.AuthenticationDTO'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
+        "403":
+          description: body is empty
   /auth/resend-otp:
     post:
       tags:
@@ -191,6 +262,33 @@ paths:
           description: ""
           schema:
             $ref: '#/definitions/responsesDTOs.UserResponseDTO'
+        "403":
+          description: body is empty
+  /auth/reset-customer-password/{id}:
+    put:
+      tags:
+      - auth
+      description: |-
+        Reset customer password
+        <br>
+      operationId: AuthenticationController.Reset Customer Password
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Change password content
+        required: true
+        schema:
+          $ref: '#/definitions/requestsDTOs.ResetPassword'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.UserResponseDTO'
         "403":
           description: body is empty
   /auth/reset-password-link:
@@ -640,9 +738,6 @@ definitions:
         type: string
       Shop:
         $ref: '#/definitions/models.Shops'
-      User:
-        type: integer
-        format: int64
       UserDetailsId:
         type: integer
         format: int64
