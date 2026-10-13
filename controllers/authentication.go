@@ -766,6 +766,13 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 func (c *AuthenticationController) ChangeCustomerPassword() {
 	username := c.Ctx.Input.Param(":username")
 
+	// DEBUG: Print all headers to see what's being sent
+	logs.Info("=== ALL REQUEST HEADERS ===")
+	for key, values := range c.Ctx.Request.Header {
+		logs.Info("Header: ", key, " = ", strings.Join(values, ", "))
+	}
+	logs.Info("=== END HEADERS ===")
+
 	// Try both ClientCode and clientCode header variants for compatibility
 	clientCode := c.Ctx.Input.Header("ClientCode")
 	if clientCode == "" {
