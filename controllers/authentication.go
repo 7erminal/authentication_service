@@ -766,7 +766,7 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 func (c *AuthenticationController) ChangeCustomerPassword() {
 	username := c.Ctx.Input.Param(":username")
 
-	clientCode := c.Ctx.Input.Header("ClientCode")
+	clientCode := c.Ctx.Input.Header("clientCode")
 
 	var v requestsDTOs.ChangePassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
@@ -777,6 +777,7 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 	logs.Info("Sending username ", username)
 	logs.Info("Sending client code ", clientCode)
 	logs.Info("Password is ", v.NewPassword)
+	logs.Info("Old password is ", v.OldPassword)
 
 	statusCode := 605
 	statusMessage := "Internal server error"
