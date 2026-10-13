@@ -758,7 +758,7 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 // Change Customer Password ...
 // @Title Change Customer Password
 // @Description Change customer password
-// @Param	id		path 	string	true		"The id you want to update"
+// @Param	username	path 	string	true		"The username for which to change password"
 // @Param	body		body 	requestsDTOs.ChangePassword	true		"body for Change password content"
 // @Success 201 {object} models.UserResponseDTO
 // @Failure 403 body is empty
@@ -766,7 +766,11 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 func (c *AuthenticationController) ChangeCustomerPassword() {
 	username := c.Ctx.Input.Param(":username")
 
-	clientCode := c.Ctx.Input.Header("clientCode")
+	// Try both ClientCode and clientCode header variants for compatibility
+	clientCode := c.Ctx.Input.Header("ClientCode")
+	if clientCode == "" {
+		clientCode = c.Ctx.Input.Header("clientCode")
+	}
 
 	var v requestsDTOs.ChangePassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)

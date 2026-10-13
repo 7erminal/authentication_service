@@ -10,7 +10,7 @@ func init() {
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
             Method: "ChangeCustomerPassword",
-            Router: `/change-customer-password/:id`,
+            Router: `/change-customer-password/:username`,
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
