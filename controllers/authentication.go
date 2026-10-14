@@ -866,6 +866,7 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 								statusCode = 608
 								statusMessage = "Customer password reset failed. " + err.Error()
 							} else {
+								logs.Info("Customer credentials updated")
 								statusCode = 200
 								statusMessage = "Customer password has been changed successfully"
 								break
