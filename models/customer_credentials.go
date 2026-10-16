@@ -76,7 +76,7 @@ func GetCustomer_credentialsByCustomerUsername(username string) (v *Customer_cre
 }
 
 func GetCustomer_credentialsByCustomerUsernameAndClientCode(username string, clientCode string) (v *Customer_credentials, err error) {
-	logs.Info("Fetching customer credentials by username:", username)
+	logs.Info("Fetching customer credentials by username:", username, " and code ", clientCode)
 	o := orm.NewOrm()
 	v = &Customer_credentials{}
 	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).Filter("ClientCode", clientCode).RelatedSel().One(v); err == nil {
