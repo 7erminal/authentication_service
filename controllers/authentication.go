@@ -542,12 +542,22 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 				return
 			}
 
-			var resp = responsesDTOs.TokenResponseDTO{
+			var data = responsesDTOs.TokenResponseDTO{
 				AccessToken:  accessToken,
 				RefreshToken: refreshToken, // Return same refresh token
 				TokenType:    "Bearer",
 				ExpiresIn:    900,
 			}
+
+			userType := "CUSTOMER"
+
+			result := responsesDTOs.LoginDataResponseDTO{
+				UserType: userType,
+				Token:    &data,
+			}
+			logs.Info("Login response being sent is ", result)
+
+			var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Token generated", Result: &result}
 			c.Data["json"] = resp
 		} else {
 			c.Ctx.Output.SetStatus(401)
