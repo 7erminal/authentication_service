@@ -44,6 +44,7 @@ func (c *AuthenticationController) URLMapping() {
 	c.Mapping("ResetCustomerPassword", c.ResetCustomerPassword)
 	c.Mapping("RefreshAccessToken", c.RefreshAccessToken)
 	c.Mapping("RefreshCustomerAccessToken", c.RefreshCustomerAccessToken)
+	c.Mapping("PinValidation", c.PinValidation)
 }
 
 // Login ...
@@ -991,6 +992,73 @@ func (c *AuthenticationController) ResetPasswordLink() {
 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
 		c.Data["json"] = resp
 	}
+	c.ServeJSON()
+}
+
+// Pin Validation ...
+// @Title Pin Validation
+// @Description Pin validation using username
+// @Param	body		body 	requestsDTOs.VerifyOtpDTO	true		"body for Verify OTP content"
+// @Success 201 {object} requestsDTOs.UserResponseDTO
+// @Failure 403 body is empty
+// @router /pin-validation [post]
+func (c *AuthenticationController) PinValidation() {
+	var v models.AuthenticationDTO
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
+
+	logs.Info("Received ", v.Password, v.Username)
+
+	ipAddress := c.Ctx.Request.RemoteAddr
+
+	logs.Info("IP Address ", ipAddress)
+	clientCode := c.Ctx.Input.Header("clientCode")
+
+	trimUsername := strings.TrimSpace(v.Username)
+
+	statusCode := 400
+	statusMessage := "Failed"
+	value := ""
+
+	if clientCode != "" {
+		if a, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(trimUsername, clientCode); err == nil {
+			// Compare the stored hashed password, with the hashed version of the password that was received
+			logs.Info("Customer credentials fetched")
+			if a.Active == 1 {
+				logs.Info("Password is ", v.Password)
+				if err := bcrypt.CompareHashAndPassword([]byte(a.Pin), []byte(v.Password)); err != nil {
+					// If the two passwords don't match, return a 401 status
+					logs.Info("Password hash is ", a.Password)
+					logs.Error("Password incorrect ", err.Error())
+					c.Data["json"] = err.Error()
+
+					logs.Error(err.Error())
+
+					statusCode = 605
+					statusMessage = "Incorrect password"
+				} else {
+					c.Ctx.Output.SetStatus(200)
+					statusCode = 200
+					value = "Pin validation successful"
+					statusMessage = "Successfully validated pin"
+				}
+			} else {
+				logs.Error("Customer is not active ", a.Active)
+				statusCode = 607
+				statusMessage = "Inactive Customer"
+			}
+		} else {
+			logs.Error(err.Error())
+			statusCode = 605
+			statusMessage = "Unidentified customer"
+		}
+	} else {
+		logs.Error("Client code is empty")
+		statusCode = 301
+		statusMessage = "Client code is empty"
+	}
+
+	var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: value, StatusDesc: statusMessage}
+	c.Data["json"] = resp
 	c.ServeJSON()
 }
 
