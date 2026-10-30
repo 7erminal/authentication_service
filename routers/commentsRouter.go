@@ -27,6 +27,15 @@ func init() {
 
     beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
         beego.ControllerComments{
+            Method: "PinValidation",
+            Router: `/customer-pin-validation`,
+            AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
+        beego.ControllerComments{
             Method: "CheckCustomerTokenExpiry",
             Router: `/customer-token/check`,
             AllowHTTPMethods: []string{"post"},
@@ -74,15 +83,6 @@ func init() {
         beego.ControllerComments{
             Method: "LoginToken",
             Router: `/login/token`,
-            AllowHTTPMethods: []string{"post"},
-            MethodParams: param.Make(),
-            Filters: nil,
-            Params: nil})
-
-    beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"] = append(beego.GlobalControllerRouter["authentication_service/controllers:AuthenticationController"],
-        beego.ControllerComments{
-            Method: "PinValidation",
-            Router: `/pin-validation`,
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,

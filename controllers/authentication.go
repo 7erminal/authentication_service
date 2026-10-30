@@ -1001,7 +1001,7 @@ func (c *AuthenticationController) ResetPasswordLink() {
 // @Param	body		body 	requestsDTOs.VerifyOtpDTO	true		"body for Verify OTP content"
 // @Success 201 {object} requestsDTOs.UserResponseDTO
 // @Failure 403 body is empty
-// @router /pin-validation [post]
+// @router /customer-pin-validation [post]
 func (c *AuthenticationController) PinValidation() {
 	var v models.AuthenticationDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
