@@ -13,7 +13,7 @@ import (
 
 type Customer_access_tokens struct {
 	Id           int64      `orm:"auto;column(customer_access_token_id)"`
-	Token        string     `orm:"size(255)"`
+	Token        string     `orm:"size(500)"`
 	Customer     *Customers `orm:"rel(fk)"`
 	DateCreated  time.Time  `orm:"type(datetime)"`
 	DateModified time.Time  `orm:"type(datetime)"`
