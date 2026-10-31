@@ -49,14 +49,15 @@ func CreateCustomerAccessToken(username string, customer models.Customers) (stri
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"username":    username,
-			"exp":         expiryTime,
-			"phoneNumber": customer.PhoneNumber,
-			"email":       customer.Email,
-			"customerId":  customer.CustomerId,
-			"fullName":    customer.FullName,
-			"imagePath":   customer.ImagePath,
-			"location":    customer.Location,
+			"username":       username,
+			"exp":            expiryTime,
+			"phoneNumber":    customer.PhoneNumber,
+			"customerNumber": customer.CustomerNumber,
+			"email":          customer.Email,
+			"customerId":     customer.CustomerId,
+			"fullName":       customer.FullName,
+			"imagePath":      customer.ImagePath,
+			"location":       customer.Location,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
