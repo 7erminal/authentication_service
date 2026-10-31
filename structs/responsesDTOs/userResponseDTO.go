@@ -55,11 +55,13 @@ type CustomerResponseDTO struct {
 type CustomerAccessTokenData struct {
 	CustomerID  string
 	Exp         int64
+	Username    string
 	PhoneNumber string
 	Email       string
 	FullName    string
 	ImagePath   string
 	Location    string
+	Active      int
 }
 
 type CustomerAccessTokenResponseDTO struct {

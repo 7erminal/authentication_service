@@ -1474,11 +1474,13 @@ func (c *AuthenticationController) CheckCustomerTokenExpiry() {
 			var resp = responsesDTOs.CustomerAccessTokenResponseDTO{StatusCode: 200, Result: &responsesDTOs.CustomerAccessTokenData{
 				CustomerID:  token.CustomerID,
 				Exp:         token.Exp,
+				Username:    token.Username,
 				PhoneNumber: token.PhoneNumber,
 				Email:       token.Email,
 				FullName:    token.FullName,
 				ImagePath:   token.ImagePath,
 				Location:    token.Location,
+				Active:      token.Active,
 			}, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {

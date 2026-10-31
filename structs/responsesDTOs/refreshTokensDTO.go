@@ -28,12 +28,14 @@ type AccessTokenClaims struct {
 }
 
 type CustomerAccessTokenClaims struct {
-	CustomerID  string
-	Exp         int64
-	PhoneNumber string
-	Email       string
-	FullName    string
-	ImagePath   string
-	Location    string
+	CustomerID  string `json:"customerId"`
+	Exp         int64  `json:"exp"`
+	Username    string `json:"username"`
+	PhoneNumber string `json:"phoneNumber"`
+	Email       string `json:"email"`
+	FullName    string `json:"fullName"`
+	ImagePath   string `json:"imagePath"`
+	Location    string `json:"location"`
+	Active      int    `json:"active"`
 	jwt.RegisteredClaims
 }

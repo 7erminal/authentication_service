@@ -58,6 +58,7 @@ func CreateCustomerAccessToken(username string, customer models.Customers) (stri
 			"fullName":       customer.FullName,
 			"imagePath":      customer.ImagePath,
 			"location":       customer.Location,
+			"active":         customer.Active,
 		})
 
 	tokenString, err := token.SignedString(secretKey)
