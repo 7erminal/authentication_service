@@ -380,6 +380,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 	statusMessage := "Failed"
 	accessTokenObj := &models.Customer_access_tokens{}
 	refreshTokenObj := &models.CustomerRefreshTokens{}
+	pinSet := false
 
 	if clientCode != "" {
 		if a, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(trimUsername, clientCode); err == nil {
@@ -403,6 +404,10 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 					token, expiryTime, err := functions.CreateAccessToken(v.Username)
 
 					logs.Info("Token created is ", token)
+
+					if a.Pin != "1234" {
+						pinSet = true
+					}
 
 					if err != nil {
 						logs.Error("Error updating token. ", err.Error())
@@ -491,6 +496,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 		RefreshToken: refreshTokenObj.Token,
 		TokenType:    "Bearer",
 		ExpiresIn:    3600,
+		PinSet:       pinSet,
 	}
 
 	userType := "CUSTOMER"
@@ -548,6 +554,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 				RefreshToken: refreshToken, // Return same refresh token
 				TokenType:    "Bearer",
 				ExpiresIn:    900,
+				PinSet:       false,
 			}
 
 			userType := "CUSTOMER"
