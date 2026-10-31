@@ -52,6 +52,22 @@ type CustomerResponseDTO struct {
 	StatusDesc string
 }
 
+type CustomerAccessTokenData struct {
+	CustomerID  string
+	Exp         int64
+	PhoneNumber string
+	Email       string
+	FullName    string
+	ImagePath   string
+	Location    string
+}
+
+type CustomerAccessTokenResponseDTO struct {
+	StatusCode int
+	Result     *CustomerAccessTokenData
+	StatusDesc string
+}
+
 type LoginResponseDTO struct {
 	StatusCode   int
 	AccessToken  string

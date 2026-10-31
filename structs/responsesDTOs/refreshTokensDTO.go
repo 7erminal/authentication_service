@@ -24,6 +24,16 @@ type LoginTokenResponseDTO struct {
 type AccessTokenClaims struct {
 	Username string
 	Exp      int64
-	IssuedAt int64
+	jwt.RegisteredClaims
+}
+
+type CustomerAccessTokenClaims struct {
+	CustomerID  string
+	Exp         int64
+	PhoneNumber string
+	Email       string
+	FullName    string
+	ImagePath   string
+	Location    string
 	jwt.RegisteredClaims
 }

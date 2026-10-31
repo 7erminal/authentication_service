@@ -44,6 +44,29 @@ func CreateAccessToken(username string) (string, int64, error) {
 	return tokenString, expiryTime, nil
 }
 
+func CreateCustomerAccessToken(username string, customer models.Customers) (string, int64, error) {
+	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
+	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"username":    username,
+			"exp":         expiryTime,
+			"phoneNumber": customer.PhoneNumber,
+			"email":       customer.Email,
+			"customerId":  customer.CustomerId,
+			"fullName":    customer.FullName,
+			"imagePath":   customer.ImagePath,
+			"location":    customer.Location,
+		})
+
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return tokenString, expiryTime, nil
+}
+
 func CreateRefreshToken(username string) (string, int64, error) {
 	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
@@ -186,6 +209,22 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 // GetAccessTokenClaims decodes access token claims into a strongly typed struct.
 func GetAccessTokenClaims(tokenString string) (*responsesDTOs.AccessTokenClaims, error) {
 	claims := &responsesDTOs.AccessTokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
+}
+
+func GetCustomerAccessTokenClaims(tokenString string) (*responsesDTOs.CustomerAccessTokenClaims, error) {
+	claims := &responsesDTOs.CustomerAccessTokenClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
