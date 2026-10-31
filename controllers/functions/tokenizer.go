@@ -72,6 +72,39 @@ func CreateCustomerAccessToken(username string, customer models.Customers) (stri
 	return tokenString, expiryTime, nil
 }
 
+// GetAccessTokenClaims decodes access token claims into a strongly typed struct.
+func GetAccessTokenClaims(tokenString string) (*responsesDTOs.AccessTokenClaims, error) {
+	claims := &responsesDTOs.AccessTokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
+}
+
+func GetCustomerAccessTokenClaims(tokenString string) (*responsesDTOs.CustomerAccessTokenClaims, error) {
+	claims := &responsesDTOs.CustomerAccessTokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
+}
+
 func CreateRefreshToken(username string) (string, int64, error) {
 	// jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
@@ -235,39 +268,6 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 		resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
 		return resp, err
 	}
-}
-
-// GetAccessTokenClaims decodes access token claims into a strongly typed struct.
-func GetAccessTokenClaims(tokenString string) (*responsesDTOs.AccessTokenClaims, error) {
-	claims := &responsesDTOs.AccessTokenClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
-	}
-
-	return claims, nil
-}
-
-func GetCustomerAccessTokenClaims(tokenString string) (*responsesDTOs.CustomerAccessTokenClaims, error) {
-	claims := &responsesDTOs.CustomerAccessTokenClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
-	}
-
-	return claims, nil
 }
 
 // var (
