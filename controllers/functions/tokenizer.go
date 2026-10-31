@@ -70,19 +70,45 @@ func CreateCustomerAccessToken(username string, customer models.Customers) (stri
 }
 
 func CreateRefreshToken(username string) (string, int64, error) {
+	// jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"username": username,
-			"exp":      expiryTime,
-		})
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+	// 	jwt.MapClaims{
+	// 		"username": username,
+	// 		"exp":      expiryTime,
+	// 		"jti":      jti,
+	// 	})
 
-	tokenString, err := token.SignedString(secretKey)
-	if err != nil {
-		return "", 0, err
-	}
+	// tokenString, err := token.SignedString(secretKey)
+	// if err != nil {
+	// 	return "", 0, "", err
+	// }
+	// return tokenString, expiryTime, jti, nil
+	// return tokenString, expiryTime, nil
+	b := make([]byte, 32)
+	rand.Read(b) // crypto/rand
+	return base64.URLEncoding.EncodeToString(b), expiryTime, nil
+}
 
-	return tokenString, expiryTime, nil
+func CreateCustomerRefreshToken(username string) (string, int64, error) {
+	// jti := uuid.NewString()
+	expiryTime := time.Now().UTC().Add(time.Hour * 24 * 7).Unix()
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+	// 	jwt.MapClaims{
+	// 		"username": username,
+	// 		"exp":      expiryTime,
+	// 		"jti":      jti,
+	// 	})
+
+	// tokenString, err := token.SignedString(secretKey)
+	// if err != nil {
+	// 	return "", 0, "", err
+	// }
+	// return tokenString, expiryTime, jti, nil
+	// return tokenString, expiryTime, nil
+	b := make([]byte, 32)
+	rand.Read(b) // crypto/rand
+	return base64.URLEncoding.EncodeToString(b), expiryTime, nil
 }
 
 func VerifyToken(tokenString string) (bool, error) {

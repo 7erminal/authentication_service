@@ -432,7 +432,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 								statusMessage = "Access token generated successfully"
 
 								// Create refresh token (7 days)
-								refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
+								refreshToken, refreshExpiryTime, err := functions.CreateCustomerRefreshToken(v.Username)
 								if err != nil {
 									logs.Error("Error generating refresh token: ", err.Error())
 									statusCode = 301
