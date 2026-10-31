@@ -183,6 +183,23 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 	}
 }
 
+// GetAccessTokenClaims decodes access token claims into a strongly typed struct.
+func GetAccessTokenClaims(tokenString string) (*responsesDTOs.AccessTokenClaims, error) {
+	claims := &responsesDTOs.AccessTokenClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return claims, nil
+}
+
 // var (
 // 	// We're using a 32 byte long secret key.
 // 	// This is probably something you generate first
