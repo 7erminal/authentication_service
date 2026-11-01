@@ -1469,18 +1469,19 @@ func (c *AuthenticationController) CheckCustomerTokenExpiry() {
 
 		if token.Exp > currentTime {
 			logs.Info("Token is still valid. Customer is ", token.CustomerID)
-			logs.Info("Customer name is ", token.FullName)
+			logs.Info("Customer name is ", token.FullName, " and customer number is ", token.CustomerNumber)
 
 			var resp = responsesDTOs.CustomerAccessTokenResponseDTO{StatusCode: 200, Result: &responsesDTOs.CustomerAccessTokenData{
-				CustomerID:  token.CustomerID,
-				Exp:         token.Exp,
-				Username:    token.Username,
-				PhoneNumber: token.PhoneNumber,
-				Email:       token.Email,
-				FullName:    token.FullName,
-				ImagePath:   token.ImagePath,
-				Location:    token.Location,
-				Active:      token.Active,
+				CustomerID:     token.CustomerID,
+				CustomerNumber: token.CustomerNumber,
+				Exp:            token.Exp,
+				Username:       token.Username,
+				PhoneNumber:    token.PhoneNumber,
+				Email:          token.Email,
+				FullName:       token.FullName,
+				ImagePath:      token.ImagePath,
+				Location:       token.Location,
+				Active:         token.Active,
 			}, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {
