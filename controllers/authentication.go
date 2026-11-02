@@ -527,14 +527,31 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 // @router /refresh/customer/token [post]
 func (c *AuthenticationController) RefreshCustomerAccessToken() {
 	refreshToken := c.Ctx.Input.Header("RefreshToken")
+	clientCode := c.Ctx.Input.Header("clientCode")
+
+	var v requestsDTOs.RefreshTokenRequest
+	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
 	logs.Info("Refresh customer token request received")
 
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetCustomerRefreshTokensByToken(refreshToken); err == nil {
+		if cc, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(v.Username, clientCode); err == nil {
+			if cc.ClientCode == "" {
+				c.Ctx.Output.SetStatus(401)
+				var resp = responsesDTOs.StringResponseDTO{
+					StatusCode: 607,
+					Value:      "",
+					StatusDesc: "User Exists but not mapped to a client",
+				}
+				c.Data["json"] = resp
+				c.ServeJSON()
+				return
+			}
+		}
 		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 			// Create new access token
-			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.Customer.CustomerNumber)
+			accessToken, accessExpiryTime, err := functions.CreateCustomerAccessToken(refreshTokenObj.Customer.CustomerNumber, *refreshTokenObj.Customer)
 			if err != nil {
 				c.Data["json"] = err.Error()
 				c.ServeJSON()
