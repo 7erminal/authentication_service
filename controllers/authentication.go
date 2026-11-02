@@ -1025,15 +1025,15 @@ func (c *AuthenticationController) ResetPasswordLink() {
 // Pin Validation ...
 // @Title Pin Validation
 // @Description Pin validation using username
-// @Param	body		body 	requestsDTOs.VerifyOtpDTO	true		"body for Verify OTP content"
-// @Success 201 {object} requestsDTOs.UserResponseDTO
+// @Param	body		body 	requestsDTOs.PinAuthenticationDTO	true		"body for Verify OTP content"
+// @Success 201 {object} responsesDTOs.StringResponseDTO
 // @Failure 403 body is empty
 // @router /customer-pin-validation [post]
 func (c *AuthenticationController) PinValidation() {
-	var v models.AuthenticationDTO
+	var v requestsDTOs.PinAuthenticationDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Password, v.Username)
+	logs.Info("Received ", v.Pin, v.Username)
 
 	ipAddress := c.Ctx.Request.RemoteAddr
 
@@ -1051,11 +1051,11 @@ func (c *AuthenticationController) PinValidation() {
 			// Compare the stored hashed password, with the hashed version of the password that was received
 			logs.Info("Customer credentials fetched")
 			if a.Active == 1 {
-				logs.Info("Password is ", v.Password)
-				if err := bcrypt.CompareHashAndPassword([]byte(a.Pin), []byte(v.Password)); err != nil {
-					// If the two passwords don't match, return a 401 status
-					logs.Info("Password hash is ", a.Password)
-					logs.Error("Password incorrect ", err.Error())
+				logs.Info("Pin is ", v.Pin)
+				if err := bcrypt.CompareHashAndPassword([]byte(a.Pin), []byte(v.Pin)); err != nil {
+					// If the two pins don't match, return a 401 status
+					logs.Info("Pin hash is ", a.Pin)
+					logs.Error("Pin incorrect ", err.Error())
 					c.Data["json"] = err.Error()
 
 					logs.Error(err.Error())
