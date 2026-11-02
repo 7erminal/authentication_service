@@ -537,65 +537,63 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetCustomerRefreshTokensByToken(refreshToken); err == nil {
 		if cc, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(v.Username, clientCode); err == nil {
-			if cc.ClientCode == "" {
+
+			if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
+				// Create new access token
+				accessToken, accessExpiryTime, err := functions.CreateCustomerAccessToken(cc.Username, *refreshTokenObj.Customer)
+				if err != nil {
+					c.Data["json"] = err.Error()
+					c.ServeJSON()
+					return
+				}
+
+				accessTokenObj := models.Customer_access_tokens{
+					Customer:    refreshTokenObj.Customer,
+					Token:       accessToken,
+					ExpiresAt:   time.Unix(accessExpiryTime, 0),
+					Revoked:     false,
+					DateCreated: time.Now(),
+				}
+
+				if _, err := models.AddCustomer_access_tokens(&accessTokenObj); err != nil {
+					c.Data["json"] = err.Error()
+					c.ServeJSON()
+					return
+				}
+
+				var data = responsesDTOs.TokenResponseDTO{
+					AccessToken:  accessToken,
+					RefreshToken: refreshToken, // Return same refresh token
+					TokenType:    "Bearer",
+					ExpiresIn:    900,
+					PinSet:       false,
+				}
+
+				userType := "CUSTOMER"
+
+				result := responsesDTOs.LoginDataResponseDTO{
+					UserType: userType,
+					Token:    &data,
+				}
+				logs.Info("Login response being sent is ", result)
+
+				var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Token generated", Result: &result}
+				c.Data["json"] = resp
+			} else {
 				c.Ctx.Output.SetStatus(401)
 				var resp = responsesDTOs.StringResponseDTO{
-					StatusCode: 607,
+					StatusCode: 605,
 					Value:      "",
-					StatusDesc: "User Exists but not mapped to a client",
+					StatusDesc: "Refresh token expired or revoked",
 				}
 				c.Data["json"] = resp
-				c.ServeJSON()
-				return
 			}
-		}
-		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
-			// Create new access token
-			accessToken, accessExpiryTime, err := functions.CreateCustomerAccessToken(refreshTokenObj.Customer.CustomerNumber, *refreshTokenObj.Customer)
-			if err != nil {
-				c.Data["json"] = err.Error()
-				c.ServeJSON()
-				return
-			}
-
-			accessTokenObj := models.Customer_access_tokens{
-				Customer:    refreshTokenObj.Customer,
-				Token:       accessToken,
-				ExpiresAt:   time.Unix(accessExpiryTime, 0),
-				Revoked:     false,
-				DateCreated: time.Now(),
-			}
-
-			if _, err := models.AddCustomer_access_tokens(&accessTokenObj); err != nil {
-				c.Data["json"] = err.Error()
-				c.ServeJSON()
-				return
-			}
-
-			var data = responsesDTOs.TokenResponseDTO{
-				AccessToken:  accessToken,
-				RefreshToken: refreshToken, // Return same refresh token
-				TokenType:    "Bearer",
-				ExpiresIn:    900,
-				PinSet:       false,
-			}
-
-			userType := "CUSTOMER"
-
-			result := responsesDTOs.LoginDataResponseDTO{
-				UserType: userType,
-				Token:    &data,
-			}
-			logs.Info("Login response being sent is ", result)
-
-			var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Token generated", Result: &result}
-			c.Data["json"] = resp
 		} else {
-			c.Ctx.Output.SetStatus(401)
+			c.Ctx.Output.SetStatus(200)
 			var resp = responsesDTOs.StringResponseDTO{
-				StatusCode: 605,
+				StatusCode: 608,
 				Value:      "",
-				StatusDesc: "Refresh token expired or revoked",
+				StatusDesc: "User not found",
 			}
 			c.Data["json"] = resp
 		}
