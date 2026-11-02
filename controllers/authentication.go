@@ -445,7 +445,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 										Token:        refreshToken,
 										ExpiresAt:    time.Unix(refreshExpiryTime, 0),
 										IPAddress:    ipAddress,
-										UserAgent:    "", //userAgent,
+										UserAgent:    clientCode,
 										AccessToken:  accessTokenObj,
 										DateCreated:  time.Now(),
 										DateModified: time.Now(),
@@ -527,7 +527,6 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 // @router /refresh/customer/token [post]
 func (c *AuthenticationController) RefreshCustomerAccessToken() {
 	refreshToken := c.Ctx.Input.Header("RefreshToken")
-	clientCode := c.Ctx.Input.Header("clientCode")
 
 	var v requestsDTOs.RefreshTokenRequest
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
@@ -536,7 +535,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 
 	// Validate refresh token
 	if refreshTokenObj, err := models.GetCustomerRefreshTokensByToken(refreshToken); err == nil {
-		if cc, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(v.Username, clientCode); err == nil {
+		if cc, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(v.Username, refreshTokenObj.UserAgent); err == nil {
 
 			if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 				// Create new access token
