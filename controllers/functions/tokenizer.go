@@ -50,6 +50,7 @@ func CreateAccessToken(userid string, username string, roleid string, rolename s
 			"jti":         jti,
 			"branchId":    branchId,
 			"shop":        shop,
+			"type":        "USER",
 		})
 
 	tokenString, err := token.SignedString(secretKey)
@@ -74,6 +75,7 @@ func CreateCustomerAccessToken(customerid string, username string, category stri
 			"jti":        jti,
 			"branchId":   branchid,
 			"shop":       shop,
+			"type":       "CUSTOMER",
 		})
 
 	tokenString, err := token.SignedString(secretKey)
