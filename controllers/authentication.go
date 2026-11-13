@@ -491,7 +491,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 
 					c.Ctx.Output.SetStatus(200)
 
-					token, expiryTime, jti, err := functions.CreateCustomerAccessToken(strconv.FormatInt(a.Customer, 10), v.Username, "customer", customer.Result.Branch.BranchId, customer.Result.Branch.Branch)
+					token, expiryTime, jti, err := functions.CreateCustomerAccessToken(strconv.FormatInt(a.Customer, 10), v.Username, "customer", customer.Result.Branch.BranchId, customer.Result.Shop.ShopId)
 
 					logs.Info("Token created is ", token)
 
@@ -600,7 +600,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 			if customerResp, err := functions.GetCustomer(&c.Controller, requestsDTOs.GetCustomerRequest{CustomerId: strconv.Itoa(int(refreshTokenObj.Customer))}); err == nil {
 				if customerResp.StatusCode == 200 {
 					logs.Info("Refresh token is valid. Generating new access token...")
-					accessToken, accessExpiryTime, jti, err := functions.CreateCustomerAccessToken(customerResp.Result.CustomerNumber, "customer", customerResp.Result.CustomerCategory.CustomerCategoryId, customerResp.Result.Branch.BranchId, customerResp.Result.Branch.Branch)
+					accessToken, accessExpiryTime, jti, err := functions.CreateCustomerAccessToken(customerResp.Result.CustomerNumber, "customer", customerResp.Result.CustomerCategory.CustomerCategoryId, customerResp.Result.Branch.BranchId, customerResp.Result.Shop.ShopId)
 					if err != nil {
 						c.Data["json"] = err.Error()
 						c.ServeJSON()
