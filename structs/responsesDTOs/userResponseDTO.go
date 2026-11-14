@@ -275,6 +275,7 @@ type AuthenticatedUser struct {
 	BranchID    string
 	Permissions []UserPermission
 	Shop        string
+	Type        string
 }
 
 type AuthenticatedCustomer struct {
@@ -285,4 +286,5 @@ type AuthenticatedCustomer struct {
 	ExpiryTime       int64
 	BranchID         string
 	Shop             string
+	Type             string
 }

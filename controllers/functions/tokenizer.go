@@ -196,6 +196,7 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 					BranchID:    claims.BranchID,
 					Shop:        claims.Shop,
 					ExpiryTime:  claims.ExpiresAt.Unix(),
+					Type:        claims.Type,
 				}
 				if claims.ExpiresAt.Unix() > time.Now().UTC().Unix() {
 					logs.Info("Token is valid")

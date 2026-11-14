@@ -30,6 +30,7 @@ type AccessTokenClaims struct {
 	Permissions []UserPermission `json:"permissions"`
 	BranchID    string           `json:"branchid"`
 	Shop        string           `json:"shop"`
+	Type        string           `json:"type"`
 	jwt.RegisteredClaims
 }
 
@@ -41,6 +42,7 @@ type CustomerAccessTokenClaims struct {
 	ExpiryTime int64  `json:"expirytime"`
 	BranchID   string `json:"branchid"`
 	Shop       string `json:"shop"`
+	Type       string `json:"type"`
 	jwt.RegisteredClaims
 }
 
