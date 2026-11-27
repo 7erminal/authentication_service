@@ -1,6 +1,8 @@
 package models
 
 import (
+	"authentication_service/internal/trace"
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -30,18 +32,21 @@ func init() {
 
 // AddRefreshTokens insert a new RefreshTokens into database and returns
 // last inserted Id on success.
-func AddCustomerRefreshTokens(m *CustomerRefreshTokens) (id int64, err error) {
+func AddCustomerRefreshTokensContext(ctx context.Context, m *CustomerRefreshTokens) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
+	if err == nil {
+		trace.Logger(ctx).Info("record created", "record_type", "customer_refresh_tokens", "record_id", id)
+	}
 	return
 }
 
 // GetRefreshTokensById retrieves RefreshTokens by Id. Returns error if
 // Id doesn't exist
-func GetCustomerRefreshTokensById(id int64) (v *CustomerRefreshTokens, err error) {
+func GetCustomerRefreshTokensByIdContext(ctx context.Context, id int64) (v *CustomerRefreshTokens, err error) {
 	o := orm.NewOrm()
 	v = &CustomerRefreshTokens{RefreshTokenId: id}
-	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("RefreshTokenId", id).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("RefreshTokenId", id).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -49,20 +54,20 @@ func GetCustomerRefreshTokensById(id int64) (v *CustomerRefreshTokens, err error
 
 // GetRefreshTokensByToken retrieves RefreshTokens by Token. Returns error if
 // Token doesn't exist
-func GetCustomerRefreshTokensByToken(token string) (v *CustomerRefreshTokens, err error) {
+func GetCustomerRefreshTokensByTokenContext(ctx context.Context, token string) (v *CustomerRefreshTokens, err error) {
 	o := orm.NewOrm()
 	v = &CustomerRefreshTokens{Token: token}
-	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("Token", token).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
 }
 
 // GetRefreshTokensByUser retrieves all RefreshTokens for a specific user
-func GetCustomerRefreshTokensByUser(userId int64) (ml []interface{}, err error) {
+func GetCustomerRefreshTokensByUserContext(ctx context.Context, userId int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(CustomerRefreshTokens)).Filter("Customer__CustomerId", userId).Filter("Revoked", false).RelatedSel()
-	_, err = qs.All(&ml)
+	_, err = qs.AllWithCtx(ctx, &ml)
 	if err == nil {
 		return ml, nil
 	}
@@ -71,7 +76,7 @@ func GetCustomerRefreshTokensByUser(userId int64) (ml []interface{}, err error) 
 
 // GetAllRefreshTokens retrieves all RefreshTokens matches certain condition. Returns empty list if
 // no records exist
-func GetAllCustomerRefreshTokens(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllCustomerRefreshTokensContext(ctx context.Context, query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(CustomerRefreshTokens))
@@ -123,7 +128,7 @@ func GetAllCustomerRefreshTokens(query map[string]string, fields []string, sortb
 	if limit == 0 {
 		limit = 1000
 	}
-	_, err = qs.Limit(limit, offset).All(&ml, fields...)
+	_, err = qs.Limit(limit, offset).AllWithCtx(ctx, &ml, fields...)
 	if err == nil {
 		return ml, nil
 	}
@@ -132,13 +137,13 @@ func GetAllCustomerRefreshTokens(query map[string]string, fields []string, sortb
 
 // UpdateRefreshTokensById updates RefreshTokens by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateCustomerRefreshTokensById(m *CustomerRefreshTokens) (err error) {
+func UpdateCustomerRefreshTokensByIdContext(ctx context.Context, m *CustomerRefreshTokens) (err error) {
 	o := orm.NewOrm()
 	v := CustomerRefreshTokens{RefreshTokenId: m.RefreshTokenId}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); !errors.Is(err, nil) {
+		if num, err = o.UpdateWithCtx(ctx, m); !errors.Is(err, nil) {
 			return
 		} else if num != 1 {
 			return errors.New("number of rows affected by update: " + fmt.Sprint(num))
@@ -150,13 +155,13 @@ func UpdateCustomerRefreshTokensById(m *CustomerRefreshTokens) (err error) {
 
 // DeleteRefreshTokens deletes RefreshTokens by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteCustomerRefreshTokens(id int64) (err error) {
+func DeleteCustomerRefreshTokensContext(ctx context.Context, id int64) (err error) {
 	o := orm.NewOrm()
 	v := CustomerRefreshTokens{RefreshTokenId: id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Delete(&v); !errors.Is(err, nil) {
+		if num, err = o.DeleteWithCtx(ctx, &v); !errors.Is(err, nil) {
 			return
 		} else if num != 1 {
 			return errors.New("number of rows affected by delete: " + fmt.Sprint(num))
@@ -167,10 +172,10 @@ func DeleteCustomerRefreshTokens(id int64) (err error) {
 }
 
 // RevokeRefreshTokensByUserId revokes all refresh tokens for a specific user
-func RevokeCustomerRefreshTokensByUserId(userId int64) (err error) {
+func RevokeCustomerRefreshTokensByUserIdContext(ctx context.Context, userId int64) (err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(CustomerRefreshTokens))
-	_, err = qs.Filter("User__UserId", userId).Filter("Revoked", false).Update(orm.Params{
+	_, err = qs.Filter("User__UserId", userId).Filter("Revoked", false).UpdateWithCtx(ctx, orm.Params{
 		"Revoked":      true,
 		"DateModified": time.Now(),
 	})
@@ -178,10 +183,10 @@ func RevokeCustomerRefreshTokensByUserId(userId int64) (err error) {
 }
 
 // RevokeRefreshTokenByToken revokes a specific refresh token
-func RevokeCustomerRefreshTokenByToken(token string) (err error) {
+func RevokeCustomerRefreshTokenByTokenContext(ctx context.Context, token string) (err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(CustomerRefreshTokens))
-	_, err = qs.Filter("Token", token).Update(orm.Params{
+	_, err = qs.Filter("Token", token).UpdateWithCtx(ctx, orm.Params{
 		"Revoked":      true,
 		"DateModified": time.Now(),
 	})
@@ -189,10 +194,10 @@ func RevokeCustomerRefreshTokenByToken(token string) (err error) {
 }
 
 // UpdateRefreshTokenLastUsed updates the last used time for a refresh token
-func UpdateCustomerRefreshTokenLastUsed(tokenId int64) (err error) {
+func UpdateCustomerRefreshTokenLastUsedContext(ctx context.Context, tokenId int64) (err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(CustomerRefreshTokens))
-	_, err = qs.Filter("RefreshTokenId", tokenId).Update(orm.Params{
+	_, err = qs.Filter("RefreshTokenId", tokenId).UpdateWithCtx(ctx, orm.Params{
 		"LastUsedAt":   time.Now(),
 		"DateModified": time.Now(),
 	})
@@ -200,14 +205,14 @@ func UpdateCustomerRefreshTokenLastUsed(tokenId int64) (err error) {
 }
 
 // ValidateRefreshToken checks if a refresh token is valid (not expired, not revoked)
-func ValidateCustomerRefreshToken(token string) (v *CustomerRefreshTokens, err error) {
+func ValidateCustomerRefreshTokenContext(ctx context.Context, token string) (v *CustomerRefreshTokens, err error) {
 	o := orm.NewOrm()
 	v = &CustomerRefreshTokens{Token: token}
-	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("Token", token).Filter("Revoked", false).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("Token", token).Filter("Revoked", false).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		if v.ExpiresAt.After(time.Now()) {
 			// Update last used
 			v.LastUsedAt = time.Now()
-			o.Update(v, "LastUsedAt", "DateModified")
+			o.UpdateWithCtx(ctx, v, "LastUsedAt", "DateModified")
 			return v, nil
 		}
 		return nil, errors.New("refresh token expired")
@@ -216,10 +221,10 @@ func ValidateCustomerRefreshToken(token string) (v *CustomerRefreshTokens, err e
 }
 
 // GetRefreshTokenDetails returns detailed info about a refresh token
-func GetCustomerRefreshTokenDetails(token string) (v *CustomerRefreshTokens, err error) {
+func GetCustomerRefreshTokenDetailsContext(ctx context.Context, token string) (v *CustomerRefreshTokens, err error) {
 	o := orm.NewOrm()
 	v = &CustomerRefreshTokens{}
-	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(CustomerRefreshTokens)).Filter("Token", token).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -232,4 +237,65 @@ func (t *CustomerRefreshTokens) TableName() string {
 // String() function is the same as the String function in AccessTokens
 func (t *CustomerRefreshTokens) String() string {
 	return reflect.Indirect(reflect.ValueOf(t)).Type().Name()
+}
+
+// AddCustomerRefreshTokens is a compatibility wrapper. Request handlers use AddCustomerRefreshTokensContext.
+func AddCustomerRefreshTokens(m *CustomerRefreshTokens) (id int64, err error) {
+	return AddCustomerRefreshTokensContext(context.Background(), m)
+}
+
+// GetCustomerRefreshTokensById is a compatibility wrapper. Request handlers use GetCustomerRefreshTokensByIdContext.
+func GetCustomerRefreshTokensById(id int64) (v *CustomerRefreshTokens, err error) {
+	return GetCustomerRefreshTokensByIdContext(context.Background(), id)
+}
+
+// GetCustomerRefreshTokensByToken is a compatibility wrapper. Request handlers use GetCustomerRefreshTokensByTokenContext.
+func GetCustomerRefreshTokensByToken(token string) (v *CustomerRefreshTokens, err error) {
+	return GetCustomerRefreshTokensByTokenContext(context.Background(), token)
+}
+
+// GetCustomerRefreshTokensByUser is a compatibility wrapper. Request handlers use GetCustomerRefreshTokensByUserContext.
+func GetCustomerRefreshTokensByUser(userId int64) (ml []interface{}, err error) {
+	return GetCustomerRefreshTokensByUserContext(context.Background(), userId)
+}
+
+// GetAllCustomerRefreshTokens is a compatibility wrapper. Request handlers use GetAllCustomerRefreshTokensContext.
+func GetAllCustomerRefreshTokens(query map[string]string, fields []string, sortby []string, order []string,
+	offset int64, limit int64) (ml []interface{}, err error) {
+	return GetAllCustomerRefreshTokensContext(context.Background(), query, fields, sortby, order, offset, limit)
+}
+
+// UpdateCustomerRefreshTokensById is a compatibility wrapper. Request handlers use UpdateCustomerRefreshTokensByIdContext.
+func UpdateCustomerRefreshTokensById(m *CustomerRefreshTokens) (err error) {
+	return UpdateCustomerRefreshTokensByIdContext(context.Background(), m)
+}
+
+// DeleteCustomerRefreshTokens is a compatibility wrapper. Request handlers use DeleteCustomerRefreshTokensContext.
+func DeleteCustomerRefreshTokens(id int64) (err error) {
+	return DeleteCustomerRefreshTokensContext(context.Background(), id)
+}
+
+// RevokeCustomerRefreshTokensByUserId is a compatibility wrapper. Request handlers use RevokeCustomerRefreshTokensByUserIdContext.
+func RevokeCustomerRefreshTokensByUserId(userId int64) (err error) {
+	return RevokeCustomerRefreshTokensByUserIdContext(context.Background(), userId)
+}
+
+// RevokeCustomerRefreshTokenByToken is a compatibility wrapper. Request handlers use RevokeCustomerRefreshTokenByTokenContext.
+func RevokeCustomerRefreshTokenByToken(token string) (err error) {
+	return RevokeCustomerRefreshTokenByTokenContext(context.Background(), token)
+}
+
+// UpdateCustomerRefreshTokenLastUsed is a compatibility wrapper. Request handlers use UpdateCustomerRefreshTokenLastUsedContext.
+func UpdateCustomerRefreshTokenLastUsed(tokenId int64) (err error) {
+	return UpdateCustomerRefreshTokenLastUsedContext(context.Background(), tokenId)
+}
+
+// ValidateCustomerRefreshToken is a compatibility wrapper. Request handlers use ValidateCustomerRefreshTokenContext.
+func ValidateCustomerRefreshToken(token string) (v *CustomerRefreshTokens, err error) {
+	return ValidateCustomerRefreshTokenContext(context.Background(), token)
+}
+
+// GetCustomerRefreshTokenDetails is a compatibility wrapper. Request handlers use GetCustomerRefreshTokenDetailsContext.
+func GetCustomerRefreshTokenDetails(token string) (v *CustomerRefreshTokens, err error) {
+	return GetCustomerRefreshTokenDetailsContext(context.Background(), token)
 }

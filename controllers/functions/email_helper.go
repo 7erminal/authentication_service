@@ -1,12 +1,14 @@
 package functions
 
 import (
+	"authentication_service/internal/trace"
+	"context"
 	"net/smtp"
-
-	"github.com/beego/beego/v2/core/logs"
 )
 
-func SendEmail(username string, otp string) {
+func SendEmail(username string, otp string) { SendEmailContext(context.Background(), username, otp) }
+
+func SendEmailContext(ctx context.Context, username string, otp string) {
 	// create app password in gmail to use here. This is different from your login password. This email will send emails.
 	auth := smtp.PlainAuth("", "info@amcrentalsgh.com", "kvfb hrjt qmyr lrzm", "smtp.gmail.com")
 
@@ -25,13 +27,17 @@ func SendEmail(username string, otp string) {
 	err := smtp.SendMail("smtp.gmail.com:587", auth, "info@amcrentalsgh.com", to, msg)
 
 	if err != nil {
-
-		logs.Debug(err)
-
+		trace.Logger(ctx).Error("email delivery failed")
+	} else {
+		trace.Logger(ctx).Debug("email delivered")
 	}
 }
 
 func SendEmailNew(email string, subject_ string, message string) {
+	SendEmailNewContext(context.Background(), email, subject_, message)
+}
+
+func SendEmailNewContext(ctx context.Context, email string, subject_ string, message string) {
 	// Create app password in gmail to use here
 	auth := smtp.PlainAuth("", "info@amcrentalsgh.com", "@Amcadmin2025", "smtp.gmail.com")
 	// auth := smtp.PlainAuth("", "bede.abbe@gmail.com", "fvxrscsubrzfrcip", "smtp.gmail.com")
@@ -50,8 +56,8 @@ func SendEmailNew(email string, subject_ string, message string) {
 	// err := smtp.SendMail("smtp.gmail.com:587", auth, "bede.abbe@gmail.com", to, msg)
 
 	if err != nil {
-
-		logs.Debug(err)
-
+		trace.Logger(ctx).Error("email delivery failed")
+	} else {
+		trace.Logger(ctx).Debug("email delivered")
 	}
 }

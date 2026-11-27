@@ -1,14 +1,14 @@
 package models
 
 import (
+	"authentication_service/internal/trace"
+	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type ActivationCodes struct {
@@ -33,18 +33,21 @@ func (u *ActivationCodes) TableName() string {
 
 // AddActivationCodes insert a new ActivationCodes into database and returns
 // last inserted Id on success.
-func AddActivationCodes(m *ActivationCodes) (id int64, err error) {
+func AddActivationCodesContext(ctx context.Context, m *ActivationCodes) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
+	if err == nil {
+		trace.Logger(ctx).Info("record created", "record_type", "activation_codes", "record_id", id)
+	}
 	return
 }
 
 // GetActivationCodesById retrieves ActivationCodes by Id. Returns error if
 // Id doesn't exist
-func GetActivationCodesById(id int64) (v *ActivationCodes, err error) {
+func GetActivationCodesByIdContext(ctx context.Context, id int64) (v *ActivationCodes, err error) {
 	o := orm.NewOrm()
 	v = &ActivationCodes{ActivationCodeId: id}
-	if err = o.QueryTable(new(ActivationCodes)).Filter("ActivationCodeId", id).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(ActivationCodes)).Filter("ActivationCodeId", id).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -52,26 +55,26 @@ func GetActivationCodesById(id int64) (v *ActivationCodes, err error) {
 
 // GetActivationCodesById retrieves ActivationCodes by Id. Returns error if
 // Id doesn't exist
-func GetActivationCodeByNumber(number string) (v *ActivationCodes, err error) {
+func GetActivationCodeByNumberContext(ctx context.Context, number string) (v *ActivationCodes, err error) {
 	o := orm.NewOrm()
 	v = &ActivationCodes{}
-	if err = o.QueryTable(new(ActivationCodes)).Filter("Number", number).Filter("ExpiryDate__gt", time.Now()).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(ActivationCodes)).Filter("Number", number).Filter("ExpiryDate__gt", time.Now()).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
-	logs.Info("Error fetching activation code ", err.Error())
+
 	return nil, err
 }
 
 // GetAllActivationCodes retrieves all ActivationCodes matches certain condition. Returns empty list if
 // no records exist
-func GetActivationCodesByNumber(number string) (ml []interface{}, err error) {
+func GetActivationCodesByNumberContext(ctx context.Context, number string) (ml []interface{}, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(ActivationCodes))
 	// query k=v
 
 	var l []ActivationCodes
 	qs = qs.Filter("Number", number).Filter("ExpiryDate__gt", time.Now()).RelatedSel()
-	if _, err = qs.All(&l); err == nil {
+	if _, err = qs.AllWithCtx(ctx, &l); err == nil {
 		for _, v := range l {
 			ml = append(ml, v)
 		}
@@ -82,7 +85,7 @@ func GetActivationCodesByNumber(number string) (ml []interface{}, err error) {
 
 // GetAllActivationCodes retrieves all ActivationCodes matches certain condition. Returns empty list if
 // no records exist
-func GetAllActivationCodes(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllActivationCodesContext(ctx context.Context, query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(ActivationCodes))
@@ -133,7 +136,7 @@ func GetAllActivationCodes(query map[string]string, fields []string, sortby []st
 
 	var l []ActivationCodes
 	qs = qs.OrderBy(sortFields...).RelatedSel()
-	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
+	if _, err = qs.Limit(limit, offset).AllWithCtx(ctx, &l, fields...); err == nil {
 		if len(fields) == 0 {
 			for _, v := range l {
 				ml = append(ml, v)
@@ -156,15 +159,15 @@ func GetAllActivationCodes(query map[string]string, fields []string, sortby []st
 
 // UpdateActivationCodes updates ActivationCodes by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateActivationCodesById(m *ActivationCodes) (err error) {
+func UpdateActivationCodesByIdContext(ctx context.Context, m *ActivationCodes) (err error) {
 	o := orm.NewOrm()
 	v := ActivationCodes{ActivationCodeId: m.ActivationCodeId}
-	logs.Debug("Activation ID in model is ", v.ActivationCodeId, " and value is ", v.ExpiryDate)
+
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
@@ -172,15 +175,51 @@ func UpdateActivationCodesById(m *ActivationCodes) (err error) {
 
 // DeleteActivationCodes deletes ActivationCodes by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteActivationCodes(id int64) (err error) {
+func DeleteActivationCodesContext(ctx context.Context, id int64) (err error) {
 	o := orm.NewOrm()
 	v := ActivationCodes{ActivationCodeId: id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Delete(&ActivationCodes{ActivationCodeId: id}); err == nil {
-			fmt.Println("Number of records deleted in database:", num)
+		if num, err = o.DeleteWithCtx(ctx, &ActivationCodes{ActivationCodeId: id}); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
+}
+
+// AddActivationCodes is a compatibility wrapper. Request handlers use AddActivationCodesContext.
+func AddActivationCodes(m *ActivationCodes) (id int64, err error) {
+	return AddActivationCodesContext(context.Background(), m)
+}
+
+// GetActivationCodesById is a compatibility wrapper. Request handlers use GetActivationCodesByIdContext.
+func GetActivationCodesById(id int64) (v *ActivationCodes, err error) {
+	return GetActivationCodesByIdContext(context.Background(), id)
+}
+
+// GetActivationCodeByNumber is a compatibility wrapper. Request handlers use GetActivationCodeByNumberContext.
+func GetActivationCodeByNumber(number string) (v *ActivationCodes, err error) {
+	return GetActivationCodeByNumberContext(context.Background(), number)
+}
+
+// GetActivationCodesByNumber is a compatibility wrapper. Request handlers use GetActivationCodesByNumberContext.
+func GetActivationCodesByNumber(number string) (ml []interface{}, err error) {
+	return GetActivationCodesByNumberContext(context.Background(), number)
+}
+
+// GetAllActivationCodes is a compatibility wrapper. Request handlers use GetAllActivationCodesContext.
+func GetAllActivationCodes(query map[string]string, fields []string, sortby []string, order []string,
+	offset int64, limit int64) (ml []interface{}, err error) {
+	return GetAllActivationCodesContext(context.Background(), query, fields, sortby, order, offset, limit)
+}
+
+// UpdateActivationCodesById is a compatibility wrapper. Request handlers use UpdateActivationCodesByIdContext.
+func UpdateActivationCodesById(m *ActivationCodes) (err error) {
+	return UpdateActivationCodesByIdContext(context.Background(), m)
+}
+
+// DeleteActivationCodes is a compatibility wrapper. Request handlers use DeleteActivationCodesContext.
+func DeleteActivationCodes(id int64) (err error) {
+	return DeleteActivationCodesContext(context.Background(), id)
 }

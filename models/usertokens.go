@@ -1,8 +1,9 @@
 package models
 
 import (
+	"authentication_service/internal/trace"
+	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -28,18 +29,21 @@ func init() {
 
 // AddUserTokens insert a new UserTokens into database and returns
 // last inserted Id on success.
-func AddUserTokens(m *UserTokens) (id int64, err error) {
+func AddUserTokensContext(ctx context.Context, m *UserTokens) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
+	if err == nil {
+		trace.Logger(ctx).Info("record created", "record_type", "user_tokens", "record_id", id)
+	}
 	return
 }
 
 // GetUserTokensById retrieves UserTokens by Id. Returns error if
 // Id doesn't exist
-func GetUserTokensById(id int64) (v *UserTokens, err error) {
+func GetUserTokensByIdContext(ctx context.Context, id int64) (v *UserTokens, err error) {
 	o := orm.NewOrm()
 	v = &UserTokens{UserTokenId: id}
-	if err = o.QueryTable(new(UserTokens)).Filter("UserTokenId", id).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(UserTokens)).Filter("UserTokenId", id).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -47,10 +51,10 @@ func GetUserTokensById(id int64) (v *UserTokens, err error) {
 
 // GetUserTokensById retrieves UserTokens by Id. Returns error if
 // Id doesn't exist
-func GetUserTokensByToken(token string) (v *UserTokens, err error) {
+func GetUserTokensByTokenContext(ctx context.Context, token string) (v *UserTokens, err error) {
 	o := orm.NewOrm()
 	v = &UserTokens{}
-	if err = o.QueryTable(new(UserTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(UserTokens)).Filter("Token", token).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -58,7 +62,7 @@ func GetUserTokensByToken(token string) (v *UserTokens, err error) {
 
 // GetAllUserTokens retrieves all UserTokens matches certain condition. Returns empty list if
 // no records exist
-func GetAllUserTokens(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllUserTokensContext(ctx context.Context, query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(UserTokens))
@@ -109,7 +113,7 @@ func GetAllUserTokens(query map[string]string, fields []string, sortby []string,
 
 	var l []UserTokens
 	qs = qs.OrderBy(sortFields...).RelatedSel()
-	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
+	if _, err = qs.Limit(limit, offset).AllWithCtx(ctx, &l, fields...); err == nil {
 		if len(fields) == 0 {
 			for _, v := range l {
 				ml = append(ml, v)
@@ -132,14 +136,14 @@ func GetAllUserTokens(query map[string]string, fields []string, sortby []string,
 
 // UpdateUserTokens updates UserTokens by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateUserTokensById(m *UserTokens) (err error) {
+func UpdateUserTokensByIdContext(ctx context.Context, m *UserTokens) (err error) {
 	o := orm.NewOrm()
 	v := UserTokens{UserTokenId: m.UserTokenId}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
@@ -147,15 +151,46 @@ func UpdateUserTokensById(m *UserTokens) (err error) {
 
 // DeleteUserTokens deletes UserTokens by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteUserTokens(id int64) (err error) {
+func DeleteUserTokensContext(ctx context.Context, id int64) (err error) {
 	o := orm.NewOrm()
 	v := UserTokens{UserTokenId: id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Delete(&UserTokens{UserTokenId: id}); err == nil {
-			fmt.Println("Number of records deleted in database:", num)
+		if num, err = o.DeleteWithCtx(ctx, &UserTokens{UserTokenId: id}); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
+}
+
+// AddUserTokens is a compatibility wrapper. Request handlers use AddUserTokensContext.
+func AddUserTokens(m *UserTokens) (id int64, err error) {
+	return AddUserTokensContext(context.Background(), m)
+}
+
+// GetUserTokensById is a compatibility wrapper. Request handlers use GetUserTokensByIdContext.
+func GetUserTokensById(id int64) (v *UserTokens, err error) {
+	return GetUserTokensByIdContext(context.Background(), id)
+}
+
+// GetUserTokensByToken is a compatibility wrapper. Request handlers use GetUserTokensByTokenContext.
+func GetUserTokensByToken(token string) (v *UserTokens, err error) {
+	return GetUserTokensByTokenContext(context.Background(), token)
+}
+
+// GetAllUserTokens is a compatibility wrapper. Request handlers use GetAllUserTokensContext.
+func GetAllUserTokens(query map[string]string, fields []string, sortby []string, order []string,
+	offset int64, limit int64) (ml []interface{}, err error) {
+	return GetAllUserTokensContext(context.Background(), query, fields, sortby, order, offset, limit)
+}
+
+// UpdateUserTokensById is a compatibility wrapper. Request handlers use UpdateUserTokensByIdContext.
+func UpdateUserTokensById(m *UserTokens) (err error) {
+	return UpdateUserTokensByIdContext(context.Background(), m)
+}
+
+// DeleteUserTokens is a compatibility wrapper. Request handlers use DeleteUserTokensContext.
+func DeleteUserTokens(id int64) (err error) {
+	return DeleteUserTokensContext(context.Background(), id)
 }

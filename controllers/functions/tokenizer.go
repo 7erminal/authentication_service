@@ -3,6 +3,7 @@ package functions
 import (
 	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -14,8 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/beego/beego/v2/core/logs"
-	beego "github.com/beego/beego/v2/server/web"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -36,7 +35,7 @@ func HashToken(token string) string {
 }
 
 func CreateAccessToken(userid string, username string, roleid string, rolename string, permssions []responsesDTOs.UserPermission, branchId string, shop string) (string, int64, string, error) {
-	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
+
 	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
@@ -62,7 +61,7 @@ func CreateAccessToken(userid string, username string, roleid string, rolename s
 }
 
 func CreateCustomerAccessToken(customerid string, username string, category string, branchid string, shop string) (string, int64, string, error) {
-	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
+
 	jti := uuid.NewString()
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
@@ -182,10 +181,8 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 
 	if token, err := VerifyToken(token_); err == nil {
 		if token {
-			logs.Info("Valid token...")
+
 			if claims, claimsErr := GetAccessTokenClaims(token_); claimsErr == nil {
-				logs.Info("Decoded access token claims: username=", claims.Username, " roleid=", claims.RoleID, " rolename=", claims.RoleName, " permissions=", claims.Permissions)
-				logs.Info("Token claims successfully decoded")
 
 				authUser := &responsesDTOs.AuthenticatedUser{
 					UserID:      claims.UserID,
@@ -199,33 +196,37 @@ func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error)
 					Type:        claims.Type,
 				}
 				if claims.ExpiresAt.Unix() > time.Now().UTC().Unix() {
-					logs.Info("Token is valid")
+
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: authUser}
 					return resp, nil
 				} else {
-					logs.Info("Token has expired")
+
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 					return resp, nil
 				}
 
 			} else {
-				logs.Error("Error decoding access token claims: ", claimsErr.Error())
+
 				resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 				return resp, claimsErr
 			}
 		} else {
-			logs.Error("Token is invalid...")
+
 			resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 			return resp, nil
 		}
 	} else {
-		logs.Error("Error validating token...", err.Error())
+
 		resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 		return resp, err
 	}
 }
 
 func GetUserFromBearerToken(authorizationHeader string) (*responsesDTOs.Users, error) {
+	return GetUserFromBearerTokenContext(context.Background(), authorizationHeader)
+}
+
+func GetUserFromBearerTokenContext(ctx context.Context, authorizationHeader string) (*responsesDTOs.Users, error) {
 	authorizationHeader = strings.TrimSpace(authorizationHeader)
 	if authorizationHeader == "" {
 		return nil, fmt.Errorf("authorization header is required")
@@ -251,9 +252,8 @@ func GetUserFromBearerToken(authorizationHeader string) (*responsesDTOs.Users, e
 		return nil, fmt.Errorf("invalid access token")
 	}
 
-	logs.Info("Getting user")
 	userReq := requestsDTOs.GetUserRequest{UserId: tokenResp.User.UserID}
-	if user, err := GetUser(&beego.Controller{}, userReq); err == nil {
+	if user, err := GetUserContext(ctx, userReq); err == nil {
 		if user.StatusCode == 200 {
 			return user.Result, nil
 		} else {
@@ -268,12 +268,11 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 
 	if token, err := VerifyToken(token_); err == nil {
 		if token {
-			logs.Info("Valid token...")
+
 			if claims, claimsErr := GetCustomerAccessTokenClaims(token_); claimsErr == nil {
-				logs.Info("Decoded customer token claims: username=", claims.Username, " category=", claims.Category)
-				logs.Info("Checking token expiry against current time: ", time.Now().UTC().Unix())
+
 				if claims.ExpiresAt.Unix() > time.Now().UTC().Unix() {
-					logs.Info("Token is valid")
+
 					authCustomer := &responsesDTOs.AuthenticatedCustomer{
 						CustomerId:       claims.CustomerId,
 						Username:         claims.Username,
@@ -286,22 +285,22 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: true, Customer: authCustomer}
 					return resp, nil
 				} else {
-					logs.Info("Token has expired")
+
 					resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
 					return resp, nil
 				}
 			} else {
-				logs.Error("Error decoding customer token claims: ", claimsErr.Error())
+
 				resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
 				return resp, claimsErr
 			}
 		} else {
-			logs.Error("Token is invalid...")
+
 			resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
 			return resp, nil
 		}
 	} else {
-		logs.Error("Error validating token...", err.Error())
+
 		resp := responsesDTOs.CustomerTokenResponseDTO{IsValid: false, Customer: nil}
 		return resp, err
 	}
@@ -379,7 +378,7 @@ func GetAESEncrypted(plaintext string) (string, string, error) {
 		encryptedString := base64.StdEncoding.EncodeToString(cipherText)
 
 		if !strings.Contains(encryptedString, "/") {
-			logs.Info("returning hash")
+
 			return base64.StdEncoding.EncodeToString(cipherText), base64.StdEncoding.EncodeToString(nonce), nil
 		}
 	}
@@ -393,14 +392,11 @@ func EncryptInfo(plaintext string) (string, error) {
 			return "", err
 		}
 
-		logs.Info("hashed password generated ", string(hashedPassword))
-
 		// Check if hash contains a slash
 		if !strings.Contains(string(hashedPassword), "/") {
-			logs.Info("returning hash")
+
 			return string(hashedPassword), nil
 		}
 
-		logs.Info("password contains slash. Regenerating hash")
 	}
 }
