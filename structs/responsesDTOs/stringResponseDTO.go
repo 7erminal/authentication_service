@@ -11,6 +11,7 @@ type StringResponseDTO struct {
 	StatusCode int
 	Value      string
 	StatusDesc string
+	RequestId  string `json:"request_id,omitempty"`
 }
 
 type InviteHashDTO struct {
@@ -21,10 +22,12 @@ type InviteHashResponseDTO struct {
 	StatusCode int
 	Value      *InviteHashDTO
 	StatusDesc string
+	RequestId  string `json:"request_id,omitempty"`
 }
 
 type InviteDecodeResponseDTO struct {
 	StatusCode int
 	Value      *TokenDestructureResponseDTO
 	StatusDesc string
+	RequestId  string `json:"request_id,omitempty"`
 }

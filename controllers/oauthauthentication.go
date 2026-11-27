@@ -2,17 +2,38 @@ package controllers
 
 import (
 	"authentication_service/api"
+	"authentication_service/internal/logger"
 	"authentication_service/structs/responsesDTOs"
+	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
+	"net/url"
+	"os"
 
-	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
 )
 
+// Google OAuth credentials are read from the environment; they must not be
+// hardcoded in source.
+const (
+	EnvGoogleClientID     = "GOOGLE_CLIENT_ID"
+	EnvGoogleClientSecret = "GOOGLE_CLIENT_SECRET"
+)
+
+func googleOAuthCredentials() (clientID, clientSecret string) {
+	return os.Getenv(EnvGoogleClientID), os.Getenv(EnvGoogleClientSecret)
+}
+
+// GoogleOAuthConfigured reports whether both Google OAuth env vars are set.
+func GoogleOAuthConfigured() bool {
+	id, secret := googleOAuthCredentials()
+	return id != "" && secret != ""
+}
+
 // OAuthAuthenticationController operations for OAuthAuthentication
 type OAuthAuthenticationController struct {
-	beego.Controller
+	BaseController
 }
 
 // URLMapping ...
@@ -28,27 +49,38 @@ func (c *OAuthAuthenticationController) URLMapping() {
 // @Failure 403 body is empty
 // @router /google/authorize [get]
 func (c *OAuthAuthenticationController) OAuthGoogle() {
+	ctx := c.reqCtx()
 	host, err := beego.AppConfig.String("host")
 
-	logs.Info("Callback Received ", c.Ctx.Input.Query("code"))
+	// Never log the authorization code or anything Google returns (tokens).
+	slog.InfoContext(ctx, "google oauth callback received")
 
 	var code string = c.Ctx.Input.Query("code")
+
+	clientID, clientSecret := googleOAuthCredentials()
+	if clientID == "" || clientSecret == "" {
+		slog.ErrorContext(ctx, "google oauth credentials not configured", "env", EnvGoogleClientID+"/"+EnvGoogleClientSecret)
+	}
 
 	request := api.NewRequest(
 		"https://oauth2.googleapis.com",
 		"/token",
 		api.POST)
 	request.Params["code"] = code
-	request.Params["client_id"] = "1027199556532-m0a6r4sb74dd8oah3bnoo0igeahgvvis.apps.googleusercontent.com"
-	request.Params["client_secret"] = "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"
+	request.Params["client_id"] = clientID
+	request.Params["client_secret"] = clientSecret
 	request.Params["redirect_uri"] = host + "/v1/oauth/google/authorize"
 	request.Params["grant_type"] = "authorization_code"
+	// Third-party call: ctx for cancellation/logging, but internal tracing
+	// headers are NOT forwarded to Google (api.NewRequest, not
+	// NewInternalRequest).
 	client := api.Client{
 		Request: request,
+		Ctx:     ctx,
 	}
 	res, err := client.SendRequest()
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+		slog.ErrorContext(ctx, "google token exchange failed", logger.Err(err))
 		c.Data["json"] = err.Error()
 	}
 	defer res.Body.Close()
@@ -57,7 +89,7 @@ func (c *OAuthAuthenticationController) OAuthGoogle() {
 		c.Data["json"] = err.Error()
 	}
 
-	logs.Info("Raw response received is ", res)
+	slog.InfoContext(ctx, "google token exchange response received", "status", res.StatusCode)
 	// data := map[string]interface{}{}
 	var data responsesDTOs.GoogleOAuthRespDTO
 	json.Unmarshal(read, &data)
@@ -68,13 +100,9 @@ func (c *OAuthAuthenticationController) OAuthGoogle() {
 	// logs.Info("Expires in ", data["expires_in"])
 	// logs.Info("Scope is ", data["scope"])
 	// logs.Info("Token Type is ", data["token_type"])
-	logs.Info("Response received ", c.Data["json"])
-	logs.Info("Access token ", data.Access_token)
-	logs.Info("Expires in ", data.Expires_in)
-	logs.Info("Scope is ", data.Scope)
-	logs.Info("Token Type is ", data.Token_type)
+	slog.InfoContext(ctx, "google token exchange completed", "expires_in", data.Expires_in, "token_type", data.Token_type)
 
-	Register(data.Access_token)
+	RegisterCtx(ctx, data.Access_token)
 
 	c.ServeJSON()
 }
@@ -89,13 +117,17 @@ func (c *OAuthAuthenticationController) OAuthGoogle() {
 func (c *OAuthAuthenticationController) OAuthThirdPartyLogin() {
 	host, _ := beego.AppConfig.String("host")
 
-	logs.Info("Callback Received ", c.Ctx.Input.Query("third-party"))
+	slog.InfoContext(c.reqCtx(), "third party login url requested")
 	// c.Ctx.Input.Param(":id")
 
 	var url_ string = ""
 
 	if c.Ctx.Input.Query("third-party") == "google" {
-		url_ = "https://accounts.google.com/o/oauth2/v2/auth?client_id=1027199556532-m0a6r4sb74dd8oah3bnoo0igeahgvvis.apps.googleusercontent.com&redirect_uri=" + host + "/v1/oauth/google/authorize&response_type=code&scope=openid%20profile%20email&access_type=offline&include_granted_scopes=true"
+		clientID, _ := googleOAuthCredentials()
+		if clientID == "" {
+			slog.ErrorContext(c.reqCtx(), "google oauth client id not configured", "env", EnvGoogleClientID)
+		}
+		url_ = "https://accounts.google.com/o/oauth2/v2/auth?client_id=" + url.QueryEscape(clientID) + "&redirect_uri=" + host + "/v1/oauth/google/authorize&response_type=code&scope=openid%20profile%20email&access_type=offline&include_granted_scopes=true"
 	}
 
 	c.Data["json"] = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: url_, StatusDesc: "Successful"}
@@ -105,6 +137,11 @@ func (c *OAuthAuthenticationController) OAuthThirdPartyLogin() {
 }
 
 func Register(Token_ string) {
+	RegisterCtx(context.Background(), Token_)
+}
+
+// RegisterCtx is Register with request context propagation.
+func RegisterCtx(ctx context.Context, Token_ string) {
 
 	// Get user details from google and register
 	request := api.NewRequest(
@@ -115,10 +152,11 @@ func Register(Token_ string) {
 	request.HeaderField["Host"] = "www.googleapis.com"
 	client := api.Client{
 		Request: request,
+		Ctx:     ctx,
 	}
 	res, err := client.SendRequest()
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+		slog.ErrorContext(ctx, "google userinfo request failed", logger.Err(err))
 		// c.Data["json"] = err.Error()
 	}
 	defer res.Body.Close()
@@ -127,7 +165,7 @@ func Register(Token_ string) {
 	// 	logs.Error("client.Error: %v", err)
 	// }
 
-	logs.Info("Raw response for user info received is ", res)
+	slog.InfoContext(ctx, "google userinfo response received", "status", res.StatusCode)
 
 	// var data responsesDTOs.GoogleOAuthRespDTO
 	// json.Unmarshal(read, &data)

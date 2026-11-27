@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -31,8 +32,13 @@ func init() {
 // AddRefreshTokens insert a new RefreshTokens into database and returns
 // last inserted Id on success.
 func AddRefreshTokens(m *RefreshTokens) (id int64, err error) {
+	return AddRefreshTokensCtx(context.Background(), m)
+}
+
+// AddRefreshTokensCtx is AddRefreshTokens with request context propagation.
+func AddRefreshTokensCtx(ctx context.Context, m *RefreshTokens) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
 	return
 }
 
@@ -50,9 +56,14 @@ func GetRefreshTokensById(id int64) (v *RefreshTokens, err error) {
 // GetRefreshTokensByToken retrieves RefreshTokens by Token. Returns error if
 // Token doesn't exist
 func GetRefreshTokensByToken(token string) (v *RefreshTokens, err error) {
+	return GetRefreshTokensByTokenCtx(context.Background(), token)
+}
+
+// GetRefreshTokensByTokenCtx is GetRefreshTokensByToken with request context propagation.
+func GetRefreshTokensByTokenCtx(ctx context.Context, token string) (v *RefreshTokens, err error) {
 	o := orm.NewOrm()
 	v = &RefreshTokens{Token: token}
-	if err = o.QueryTable(new(RefreshTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(RefreshTokens)).Filter("Token", token).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err

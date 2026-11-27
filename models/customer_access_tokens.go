@@ -1,14 +1,15 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type Customer_access_tokens struct {
@@ -30,8 +31,13 @@ func init() {
 // AddCustomer_access_tokens insert a new Customer_access_tokens into database and returns
 // last inserted Id on success.
 func AddCustomer_access_tokens(m *Customer_access_tokens) (id int64, err error) {
+	return AddCustomer_access_tokensCtx(context.Background(), m)
+}
+
+// AddCustomer_access_tokensCtx is AddCustomer_access_tokens with request context propagation.
+func AddCustomer_access_tokensCtx(ctx context.Context, m *Customer_access_tokens) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
 	return
 }
 
@@ -49,12 +55,15 @@ func GetCustomer_access_tokensById(id int64) (v *Customer_access_tokens, err err
 // GetCustomer_access_tokensById retrieves Customer_access_tokens by Id. Returns error if
 // Id doesn't exist
 func GetCustomer_access_tokensByToken(token string) (v *Customer_access_tokens, err error) {
+	return GetCustomer_access_tokensByTokenCtx(context.Background(), token)
+}
+
+// GetCustomer_access_tokensByTokenCtx is GetCustomer_access_tokensByToken with
+// request context propagation.
+func GetCustomer_access_tokensByTokenCtx(ctx context.Context, token string) (v *Customer_access_tokens, err error) {
 	o := orm.NewOrm()
 	v = &Customer_access_tokens{Token: token}
-	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
-		logs.Info("Fetched token is ", v.Token)
-		logs.Info("Fetched token belongs to customer ", v.Customer.FullName)
-		logs.Info("Whose date of onboarding is ", v.Customer.DateCreated)
+	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Token", token).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -137,13 +146,18 @@ func GetAllCustomer_access_tokens(query map[string]string, fields []string, sort
 // UpdateCustomer_access_tokens updates Customer_access_tokens by Id and returns error if
 // the record to be updated doesn't exist
 func UpdateCustomer_access_tokensById(m *Customer_access_tokens) (err error) {
+	return UpdateCustomer_access_tokensByIdCtx(context.Background(), m)
+}
+
+// UpdateCustomer_access_tokensByIdCtx is UpdateCustomer_access_tokensById with request context propagation.
+func UpdateCustomer_access_tokensByIdCtx(ctx context.Context, m *Customer_access_tokens) (err error) {
 	o := orm.NewOrm()
 	v := Customer_access_tokens{Id: m.Id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			slog.DebugContext(ctx, "records updated", "table", "customer_access_tokens", "customer_access_token_id", m.Id, "rows", num)
 		}
 	}
 	return
@@ -152,13 +166,18 @@ func UpdateCustomer_access_tokensById(m *Customer_access_tokens) (err error) {
 // UpdateCustomer_access_tokens updates Customer_access_tokens by Id and returns error if
 // the record to be updated doesn't exist
 func UpdateCustomer_access_tokensByCustomer(m *Customer_access_tokens) (err error) {
+	return UpdateCustomer_access_tokensByCustomerCtx(context.Background(), m)
+}
+
+// UpdateCustomer_access_tokensByCustomerCtx is UpdateCustomer_access_tokensByCustomer with request context propagation.
+func UpdateCustomer_access_tokensByCustomerCtx(ctx context.Context, m *Customer_access_tokens) (err error) {
 	o := orm.NewOrm()
 	v := Customer_access_tokens{Customer: m.Customer}
 	// ascertain id exists in the database
-	if err = o.Read(&v, "Customer"); err == nil {
+	if err = o.ReadWithCtx(ctx, &v, "Customer"); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			slog.DebugContext(ctx, "records updated", "table", "customer_access_tokens", "customer_access_token_id", m.Id, "rows", num)
 		}
 	}
 	return

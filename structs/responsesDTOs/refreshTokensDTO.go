@@ -19,6 +19,7 @@ type LoginTokenResponseDTO struct {
 	StatusCode int
 	Result     *LoginDataResponseDTO
 	StatusDesc string
+	RequestId  string `json:"request_id,omitempty"`
 }
 
 type AccessTokenClaims struct {

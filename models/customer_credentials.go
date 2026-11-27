@@ -1,14 +1,15 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type Customer_credentials struct {
@@ -66,20 +67,31 @@ func GetCustomer_credentialsByCustomerId(id Customers) (v *Customer_credentials,
 // GetCustomer_credentialsByCustomerId retrieves Customer_credentials by Id. Returns error if
 // Id doesn't exist
 func GetCustomer_credentialsByCustomerUsername(username string) (v *Customer_credentials, err error) {
-	logs.Info("Fetching customer credentials by username:", username)
+	return GetCustomer_credentialsByCustomerUsernameCtx(context.Background(), username)
+}
+
+// GetCustomer_credentialsByCustomerUsernameCtx is
+// GetCustomer_credentialsByCustomerUsername with request context propagation.
+func GetCustomer_credentialsByCustomerUsernameCtx(ctx context.Context, username string) (v *Customer_credentials, err error) {
 	o := orm.NewOrm()
 	v = &Customer_credentials{}
-	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
 }
 
 func GetCustomer_credentialsByCustomerUsernameAndClientCode(username string, clientCode string) (v *Customer_credentials, err error) {
-	logs.Info("Fetching customer credentials by username:", username, " and code ", clientCode)
+	return GetCustomer_credentialsByCustomerUsernameAndClientCodeCtx(context.Background(), username, clientCode)
+}
+
+// GetCustomer_credentialsByCustomerUsernameAndClientCodeCtx is
+// GetCustomer_credentialsByCustomerUsernameAndClientCode with request context
+// propagation.
+func GetCustomer_credentialsByCustomerUsernameAndClientCodeCtx(ctx context.Context, username string, clientCode string) (v *Customer_credentials, err error) {
 	o := orm.NewOrm()
 	v = &Customer_credentials{}
-	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).Filter("ClientCode", clientCode).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(Customer_credentials)).Filter("Username", username).Filter("ClientCode", clientCode).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -162,13 +174,18 @@ func GetAllCustomer_credentials(query map[string]string, fields []string, sortby
 // UpdateCustomer_credentials updates Customer_credentials by Id and returns error if
 // the record to be updated doesn't exist
 func UpdateCustomer_credentialsById(m *Customer_credentials) (err error) {
+	return UpdateCustomer_credentialsByIdCtx(context.Background(), m)
+}
+
+// UpdateCustomer_credentialsByIdCtx is UpdateCustomer_credentialsById with request context propagation.
+func UpdateCustomer_credentialsByIdCtx(ctx context.Context, m *Customer_credentials) (err error) {
 	o := orm.NewOrm()
 	v := Customer_credentials{Id: m.Id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			slog.DebugContext(ctx, "records updated", "table", "customer_credentials", "customer_credential_id", m.Id, "rows", num)
 		}
 	}
 	return
