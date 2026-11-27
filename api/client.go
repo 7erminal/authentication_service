@@ -1,39 +1,35 @@
 package api
 
 import (
-	"encoding/json"
+	"authentication_service/internal/trace"
+	"context"
+	"errors"
 	"net/http"
-	"os"
+	"net/url"
 
 	"github.com/astaxie/beego/httplib"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type Client struct {
 	Request *Request
 	Type_   string
+	// Internal must be explicitly set by service-to-service callers. External
+	// providers (Google OAuth, etc.) must not receive correlation metadata.
+	Internal bool
 }
 
+// SendRequest is retained for non-request callers. It never invents trace IDs.
 func (c *Client) SendRequest() (*http.Response, error) {
-	// TODO: BaseURLとPathのvalidation
+	return c.SendRequestContext(context.Background())
+}
+
+func (c *Client) SendRequestContext(ctx context.Context) (*http.Response, error) {
 	fullURL := c.Request.BaseURL + c.Request.Path
-	logs.Info("Third party URL: ", fullURL)
-	beegoRequest := httplib.NewBeegoRequest(
-		fullURL,
-		c.Request.Method.String())
+	beegoRequest := httplib.NewBeegoRequest(fullURL, c.Request.Method.String())
 	for key, value := range c.Request.HeaderField {
 		beegoRequest.Header(key, value)
 	}
 	for key, value := range c.Request.FileField {
-		logs.Info("File field seen...")
-		logs.Info("Key is ", key, " and value is ", value)
-		fileInfo, err := os.Stat(value)
-		if err != nil {
-			logs.Error("Error accessing file:", err)
-			value = ""
-		} else {
-			logs.Info("File size:", fileInfo.Size())
-		}
 		beegoRequest.PostFile(key, value)
 	}
 	if c.Type_ == "params" {
@@ -41,28 +37,45 @@ func (c *Client) SendRequest() (*http.Response, error) {
 			beegoRequest.Param(key, value)
 		}
 	} else if c.Type_ == "body" {
-		reqText := []byte{}
+		var err error
 		if c.Request.InterfaceParams == nil {
-			logs.Info("Interface params are nil")
-			beegoRequest.JSONBody(c.Request.Params)
-
-			reqText, _ = json.Marshal(c.Request.Params)
+			_, err = beegoRequest.JSONBody(c.Request.Params)
 		} else {
-			logs.Info("Interface params are not nil")
-			beegoRequest.JSONBody(c.Request.InterfaceParams)
-
-			reqText, _ = json.Marshal(c.Request.InterfaceParams)
+			_, err = beegoRequest.JSONBody(c.Request.InterfaceParams)
 		}
-
-		logs.Info("Request to third party is ", string(reqText))
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	beegoRequest.Debug(true)
-	logs.Info("beego request is ", beegoRequest)
-
-	res, err := beegoRequest.Response()
+	request := beegoRequest.GetRequest()
+	*request = *request.WithContext(ctx)
+	setTraceHeaders := func(h http.Header, internal bool) {
+		h.Del(trace.SessionHeader)
+		h.Del(trace.TraceHeader)
+		h.Del(trace.RequestHeader)
+		if internal {
+			trace.Forward(ctx, h)
+		}
+	}
+	setTraceHeaders(request.Header, c.Internal)
+	origin, err := url.Parse(fullURL)
 	if err != nil {
 		return nil, err
 	}
-	return res, nil
+	beegoRequest.SetCheckRedirect(func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		setTraceHeaders(req.Header, c.Internal && req.URL.Scheme == origin.Scheme && req.URL.Host == origin.Host)
+		return nil
+	})
+	beegoRequest.Debug(false)
+	response, err := beegoRequest.Response()
+	if err != nil {
+		// Errors often include URLs, query values, or credentials. Never log them.
+		trace.Logger(ctx).Error("outbound HTTP failed", "internal", c.Internal)
+		return nil, err
+	}
+	trace.Logger(ctx).Debug("outbound HTTP completed", "internal", c.Internal, "status", response.StatusCode)
+	return response, nil
 }

@@ -4,12 +4,11 @@ import (
 	"authentication_service/api"
 	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
-	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"strings"
 
-	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
 )
 
@@ -30,11 +29,15 @@ func setControllerJSON(c *beego.Controller, value interface{}) {
 }
 
 func GetUser(c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTOs.UserResponseDTO, error) {
+	return getUser(controllerContext(c), c, req)
+}
+
+func GetUserContext(ctx context.Context, req requestsDTOs.GetUserRequest) (responsesDTOs.UserResponseDTO, error) {
+	return getUser(ctx, nil, req)
+}
+
+func getUser(ctx context.Context, c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTOs.UserResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
-
-	reqText, _ := json.Marshal(req)
-
-	logs.Info("Request to get User: ", string(reqText))
 
 	request := api.NewRequest(
 		host,
@@ -43,12 +46,13 @@ func GetUser(c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTO
 
 	// request.Params = {"UserId": strconv.Itoa(int(userid))}
 	client := api.Client{
-		Request: request,
-		Type_:   "params",
+		Request:  request,
+		Type_:    "params",
+		Internal: true,
 	}
-	res, err := client.SendRequest()
+	res, err := client.SendRequestContext(ctx)
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.UserResponseDTO{}, err
 	}
@@ -57,13 +61,6 @@ func GetUser(c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTO
 	if err != nil {
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.UserResponseDTO{}, err
-	}
-
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
-		logs.Info("Raw response received is ", string(read))
-	} else {
-		logs.Info("Raw response received is \n", prettyJSON.String())
 	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
@@ -74,18 +71,11 @@ func GetUser(c *beego.Controller, req requestsDTOs.GetUserRequest) (responsesDTO
 	}
 	setControllerJSON(c, data)
 
-	logs.Info("Resp is ", data)
-	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
-
 	return data, nil
 }
 
 func GetUserWithUsername(c *beego.Controller, req requestsDTOs.GetUserWithUsernameRequest) (responsesDTOs.UserResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
-
-	reqText, _ := json.Marshal(req)
-
-	logs.Info("Request to get User: ", string(reqText))
 
 	request := api.NewRequest(
 		host,
@@ -94,12 +84,13 @@ func GetUserWithUsername(c *beego.Controller, req requestsDTOs.GetUserWithUserna
 
 	// request.Params = {"UserId": strconv.Itoa(int(userid))}
 	client := api.Client{
-		Request: request,
-		Type_:   "params",
+		Request:  request,
+		Type_:    "params",
+		Internal: true,
 	}
-	res, err := client.SendRequest()
+	res, err := client.SendRequestContext(controllerContext(c))
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.UserResponseDTO{}, err
 	}
@@ -108,13 +99,6 @@ func GetUserWithUsername(c *beego.Controller, req requestsDTOs.GetUserWithUserna
 	if err != nil {
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.UserResponseDTO{}, err
-	}
-
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
-		logs.Info("Raw response received is ", string(read))
-	} else {
-		logs.Info("Raw response received is \n", prettyJSON.String())
 	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
@@ -125,16 +109,11 @@ func GetUserWithUsername(c *beego.Controller, req requestsDTOs.GetUserWithUserna
 	}
 	setControllerJSON(c, data)
 
-	logs.Info("Resp is ", data)
-	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
-
 	return data, nil
 }
 
 func GetRole(c *beego.Controller, roleId string) (responsesDTOs.RoleApiResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
-
-	logs.Info("Request to get Role: ", roleId)
 
 	request := api.NewRequest(
 		host,
@@ -143,12 +122,13 @@ func GetRole(c *beego.Controller, roleId string) (responsesDTOs.RoleApiResponseD
 
 	// request.Params = {"UserId": strconv.Itoa(int(userid))}
 	client := api.Client{
-		Request: request,
-		Type_:   "params",
+		Request:  request,
+		Type_:    "params",
+		Internal: true,
 	}
-	res, err := client.SendRequest()
+	res, err := client.SendRequestContext(controllerContext(c))
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.RoleApiResponseDTO{}, err
 	}
@@ -161,9 +141,7 @@ func GetRole(c *beego.Controller, roleId string) (responsesDTOs.RoleApiResponseD
 
 	// var prettyJSON bytes.Buffer
 	// if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
-	// 	logs.Info("Raw response received is ", string(read))
 	// } else {
-	// 	logs.Info("Raw response received is \n", prettyJSON.String())
 	// }
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
@@ -174,18 +152,11 @@ func GetRole(c *beego.Controller, roleId string) (responsesDTOs.RoleApiResponseD
 	}
 	setControllerJSON(c, data)
 
-	logs.Info("Resp is ", data)
-	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
-
 	return data, nil
 }
 
 func GetCustomer(c *beego.Controller, req requestsDTOs.GetCustomerRequest) (responsesDTOs.CustomerResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
-
-	reqText, _ := json.Marshal(req)
-
-	logs.Info("Request to get Customer: ", string(reqText))
 
 	request := api.NewRequest(
 		host,
@@ -194,12 +165,13 @@ func GetCustomer(c *beego.Controller, req requestsDTOs.GetCustomerRequest) (resp
 
 	// request.Params = {"UserId": strconv.Itoa(int(userid))}
 	client := api.Client{
-		Request: request,
-		Type_:   "params",
+		Request:  request,
+		Type_:    "params",
+		Internal: true,
 	}
-	res, err := client.SendRequest()
+	res, err := client.SendRequestContext(controllerContext(c))
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.CustomerResponseDTO{}, err
 	}
@@ -208,13 +180,6 @@ func GetCustomer(c *beego.Controller, req requestsDTOs.GetCustomerRequest) (resp
 	if err != nil {
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.CustomerResponseDTO{}, err
-	}
-
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
-		logs.Info("Raw response received is ", string(read))
-	} else {
-		logs.Info("Raw response received is \n", prettyJSON.String())
 	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
@@ -225,18 +190,11 @@ func GetCustomer(c *beego.Controller, req requestsDTOs.GetCustomerRequest) (resp
 	}
 	setControllerJSON(c, data)
 
-	logs.Info("Resp is ", data)
-	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
-
 	return data, nil
 }
 
 func GetCustomerWithUsername(c *beego.Controller, req requestsDTOs.GetCustomerWithUsernameRequest) (responsesDTOs.CustomerResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
-
-	reqText, _ := json.Marshal(req)
-
-	logs.Info("Request to get Customer with username: ", string(reqText))
 
 	request := api.NewRequest(
 		host,
@@ -245,12 +203,13 @@ func GetCustomerWithUsername(c *beego.Controller, req requestsDTOs.GetCustomerWi
 
 	// request.Params = {"UserId": strconv.Itoa(int(userid))}
 	client := api.Client{
-		Request: request,
-		Type_:   "params",
+		Request:  request,
+		Type_:    "params",
+		Internal: true,
 	}
-	res, err := client.SendRequest()
+	res, err := client.SendRequestContext(controllerContext(c))
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.CustomerResponseDTO{}, err
 	}
@@ -259,13 +218,6 @@ func GetCustomerWithUsername(c *beego.Controller, req requestsDTOs.GetCustomerWi
 	if err != nil {
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.CustomerResponseDTO{}, err
-	}
-
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
-		logs.Info("Raw response received is ", string(read))
-	} else {
-		logs.Info("Raw response received is \n", prettyJSON.String())
 	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
@@ -276,18 +228,11 @@ func GetCustomerWithUsername(c *beego.Controller, req requestsDTOs.GetCustomerWi
 	}
 	setControllerJSON(c, data)
 
-	logs.Info("Resp is ", data)
-	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
-
 	return data, nil
 }
 
 func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPasswordRequest) (responsesDTOs.UserResponseDTO, error) {
 	host, _ := beego.AppConfig.String("customerBaseUrl")
-
-	reqText, _ := json.Marshal(req)
-
-	logs.Info("Request to update User password: ", string(reqText))
 
 	request := api.NewRequest(
 		host,
@@ -303,12 +248,13 @@ func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPassword
 
 	// request.Params = {"UserId": strconv.Itoa(int(userid))}
 	client := api.Client{
-		Request: request,
-		Type_:   "params",
+		Request:  request,
+		Type_:    "params",
+		Internal: true,
 	}
-	res, err := client.SendRequest()
+	res, err := client.SendRequestContext(controllerContext(c))
 	if err != nil {
-		logs.Error("client.Error: %v", err)
+
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.UserResponseDTO{}, err
 	}
@@ -317,13 +263,6 @@ func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPassword
 	if err != nil {
 		setControllerJSON(c, err.Error())
 		return responsesDTOs.UserResponseDTO{}, err
-	}
-
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, read, "", "  "); err != nil {
-		logs.Info("Raw response received is ", string(read))
-	} else {
-		logs.Info("Raw response received is \n", prettyJSON.String())
 	}
 	// data := map[string]interface{}{}
 	// var dataOri responses.UserOriResponseDTO
@@ -334,8 +273,13 @@ func UpdateUserPassword(c *beego.Controller, req requestsDTOs.UpdateUserPassword
 	}
 	setControllerJSON(c, data)
 
-	logs.Info("Resp is ", data)
-	// logs.Info("Resp is ", data.User.Branch.Country.DefaultCurrency)
-
 	return data, nil
+}
+
+// controllerContext supports legacy non-request callers without manufacturing IDs.
+func controllerContext(c *beego.Controller) context.Context {
+	if c != nil && c.Ctx != nil && c.Ctx.Request != nil {
+		return c.Ctx.Request.Context()
+	}
+	return context.Background()
 }

@@ -1,8 +1,9 @@
 package models
 
 import (
+	"authentication_service/internal/trace"
+	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -30,18 +31,21 @@ func init() {
 
 // AddUserOtp insert a new UserOtp into database and returns
 // last inserted Id on success.
-func AddUserOtp(m *UserOtps) (id int64, err error) {
+func AddUserOtpContext(ctx context.Context, m *UserOtps) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
+	if err == nil {
+		trace.Logger(ctx).Info("record created", "record_type", "user_otps", "record_id", id)
+	}
 	return
 }
 
 // GetUserOtpById retrieves UserOtp by Id. Returns error if
 // Id doesn't exist
-func GetUserOtpById(id int64) (v *UserOtps, err error) {
+func GetUserOtpByIdContext(ctx context.Context, id int64) (v *UserOtps, err error) {
 	o := orm.NewOrm()
 	v = &UserOtps{UserOtpId: id}
-	if err = o.QueryTable(new(UserOtps)).Filter("UserOtpId", id).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(UserOtps)).Filter("UserOtpId", id).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -49,7 +53,7 @@ func GetUserOtpById(id int64) (v *UserOtps, err error) {
 
 // GetAllUserOtp retrieves all UserOtp matches certain condition. Returns empty list if
 // no records exist
-func GetAllUserOtp(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllUserOtpContext(ctx context.Context, query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(UserOtps))
@@ -100,7 +104,7 @@ func GetAllUserOtp(query map[string]string, fields []string, sortby []string, or
 
 	var l []UserOtps
 	qs = qs.OrderBy(sortFields...).RelatedSel()
-	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
+	if _, err = qs.Limit(limit, offset).AllWithCtx(ctx, &l, fields...); err == nil {
 		if len(fields) == 0 {
 			for _, v := range l {
 				ml = append(ml, v)
@@ -123,14 +127,14 @@ func GetAllUserOtp(query map[string]string, fields []string, sortby []string, or
 
 // UpdateUserOtp updates UserOtp by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateUserOtpById(m *UserOtps) (err error) {
+func UpdateUserOtpByIdContext(ctx context.Context, m *UserOtps) (err error) {
 	o := orm.NewOrm()
 	v := UserOtps{UserOtpId: m.UserOtpId}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
@@ -138,14 +142,14 @@ func UpdateUserOtpById(m *UserOtps) (err error) {
 
 // DeleteUserOtp deletes UserOtp by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteUserOtp(id int64) (err error) {
+func DeleteUserOtpContext(ctx context.Context, id int64) (err error) {
 	o := orm.NewOrm()
 	v := UserOtps{UserOtpId: id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Delete(&UserOtps{UserOtpId: id}); err == nil {
-			fmt.Println("Number of records deleted in database:", num)
+		if num, err = o.DeleteWithCtx(ctx, &UserOtps{UserOtpId: id}); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
@@ -153,11 +157,42 @@ func DeleteUserOtp(id int64) (err error) {
 
 // VeiryUserOTP retrieves Users by Id. Returns error if
 // Id doesn't exist
-func VerifyUserOTP(id int64) (v *UserOtps, err error) {
+func VerifyUserOTPContext(ctx context.Context, id int64) (v *UserOtps, err error) {
 	o := orm.NewOrm()
 	v = &UserOtps{UserId: id}
-	if err = o.QueryTable(new(UserOtps)).Filter("UserId", id).RelatedSel().OrderBy("-DateCreated").Limit(1).One(v); err == nil {
+	if err = o.QueryTable(new(UserOtps)).Filter("UserId", id).RelatedSel().OrderBy("-DateCreated").Limit(1).OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
+}
+
+// AddUserOtp is a compatibility wrapper. Request handlers use AddUserOtpContext.
+func AddUserOtp(m *UserOtps) (id int64, err error) {
+	return AddUserOtpContext(context.Background(), m)
+}
+
+// GetUserOtpById is a compatibility wrapper. Request handlers use GetUserOtpByIdContext.
+func GetUserOtpById(id int64) (v *UserOtps, err error) {
+	return GetUserOtpByIdContext(context.Background(), id)
+}
+
+// GetAllUserOtp is a compatibility wrapper. Request handlers use GetAllUserOtpContext.
+func GetAllUserOtp(query map[string]string, fields []string, sortby []string, order []string,
+	offset int64, limit int64) (ml []interface{}, err error) {
+	return GetAllUserOtpContext(context.Background(), query, fields, sortby, order, offset, limit)
+}
+
+// UpdateUserOtpById is a compatibility wrapper. Request handlers use UpdateUserOtpByIdContext.
+func UpdateUserOtpById(m *UserOtps) (err error) {
+	return UpdateUserOtpByIdContext(context.Background(), m)
+}
+
+// DeleteUserOtp is a compatibility wrapper. Request handlers use DeleteUserOtpContext.
+func DeleteUserOtp(id int64) (err error) {
+	return DeleteUserOtpContext(context.Background(), id)
+}
+
+// VerifyUserOTP is a compatibility wrapper. Request handlers use VerifyUserOTPContext.
+func VerifyUserOTP(id int64) (v *UserOtps, err error) {
+	return VerifyUserOTPContext(context.Background(), id)
 }

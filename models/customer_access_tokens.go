@@ -1,14 +1,14 @@
 package models
 
 import (
+	"authentication_service/internal/trace"
+	"context"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type Customer_access_tokens struct {
@@ -29,18 +29,21 @@ func init() {
 
 // AddCustomer_access_tokens insert a new Customer_access_tokens into database and returns
 // last inserted Id on success.
-func AddCustomer_access_tokens(m *Customer_access_tokens) (id int64, err error) {
+func AddCustomer_access_tokensContext(ctx context.Context, m *Customer_access_tokens) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
+	if err == nil {
+		trace.Logger(ctx).Info("record created", "record_type", "customer_access_tokens", "record_id", id)
+	}
 	return
 }
 
 // GetCustomer_access_tokensById retrieves Customer_access_tokens by Id. Returns error if
 // Id doesn't exist
-func GetCustomer_access_tokensById(id int64) (v *Customer_access_tokens, err error) {
+func GetCustomer_access_tokensByIdContext(ctx context.Context, id int64) (v *Customer_access_tokens, err error) {
 	o := orm.NewOrm()
 	v = &Customer_access_tokens{Id: id}
-	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Id", id).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Id", id).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -48,11 +51,10 @@ func GetCustomer_access_tokensById(id int64) (v *Customer_access_tokens, err err
 
 // GetCustomer_access_tokensById retrieves Customer_access_tokens by Id. Returns error if
 // Id doesn't exist
-func GetCustomer_access_tokensByToken(token string) (v *Customer_access_tokens, err error) {
+func GetCustomer_access_tokensByTokenContext(ctx context.Context, token string) (v *Customer_access_tokens, err error) {
 	o := orm.NewOrm()
 	v = &Customer_access_tokens{Token: token}
-	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
-		logs.Info("Fetched token is ", v.Token)
+	if err = o.QueryTable(new(Customer_access_tokens)).Filter("Token", token).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err
@@ -60,7 +62,7 @@ func GetCustomer_access_tokensByToken(token string) (v *Customer_access_tokens, 
 
 // GetAllCustomer_access_tokens retrieves all Customer_access_tokens matches certain condition. Returns empty list if
 // no records exist
-func GetAllCustomer_access_tokens(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllCustomer_access_tokensContext(ctx context.Context, query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(new(Customer_access_tokens))
@@ -111,7 +113,7 @@ func GetAllCustomer_access_tokens(query map[string]string, fields []string, sort
 
 	var l []Customer_access_tokens
 	qs = qs.OrderBy(sortFields...).RelatedSel()
-	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
+	if _, err = qs.Limit(limit, offset).AllWithCtx(ctx, &l, fields...); err == nil {
 		if len(fields) == 0 {
 			for _, v := range l {
 				ml = append(ml, v)
@@ -134,14 +136,14 @@ func GetAllCustomer_access_tokens(query map[string]string, fields []string, sort
 
 // UpdateCustomer_access_tokens updates Customer_access_tokens by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateCustomer_access_tokensById(m *Customer_access_tokens) (err error) {
+func UpdateCustomer_access_tokensByIdContext(ctx context.Context, m *Customer_access_tokens) (err error) {
 	o := orm.NewOrm()
 	v := Customer_access_tokens{Id: m.Id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
@@ -149,14 +151,14 @@ func UpdateCustomer_access_tokensById(m *Customer_access_tokens) (err error) {
 
 // UpdateCustomer_access_tokens updates Customer_access_tokens by Id and returns error if
 // the record to be updated doesn't exist
-func UpdateCustomer_access_tokensByCustomer(m *Customer_access_tokens) (err error) {
+func UpdateCustomer_access_tokensByCustomerContext(ctx context.Context, m *Customer_access_tokens) (err error) {
 	o := orm.NewOrm()
 	v := Customer_access_tokens{Customer: m.Customer}
 	// ascertain id exists in the database
-	if err = o.Read(&v, "Customer"); err == nil {
+	if err = o.ReadWithCtx(ctx, &v, "Customer"); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
@@ -164,15 +166,51 @@ func UpdateCustomer_access_tokensByCustomer(m *Customer_access_tokens) (err erro
 
 // DeleteCustomer_access_tokens deletes Customer_access_tokens by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteCustomer_access_tokens(id int64) (err error) {
+func DeleteCustomer_access_tokensContext(ctx context.Context, id int64) (err error) {
 	o := orm.NewOrm()
 	v := Customer_access_tokens{Id: id}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Delete(&Customer_access_tokens{Id: id}); err == nil {
-			fmt.Println("Number of records deleted in database:", num)
+		if num, err = o.DeleteWithCtx(ctx, &Customer_access_tokens{Id: id}); err == nil {
+			trace.Logger(ctx).Debug("database rows changed", "rows", num)
 		}
 	}
 	return
+}
+
+// AddCustomer_access_tokens is a compatibility wrapper. Request handlers use AddCustomer_access_tokensContext.
+func AddCustomer_access_tokens(m *Customer_access_tokens) (id int64, err error) {
+	return AddCustomer_access_tokensContext(context.Background(), m)
+}
+
+// GetCustomer_access_tokensById is a compatibility wrapper. Request handlers use GetCustomer_access_tokensByIdContext.
+func GetCustomer_access_tokensById(id int64) (v *Customer_access_tokens, err error) {
+	return GetCustomer_access_tokensByIdContext(context.Background(), id)
+}
+
+// GetCustomer_access_tokensByToken is a compatibility wrapper. Request handlers use GetCustomer_access_tokensByTokenContext.
+func GetCustomer_access_tokensByToken(token string) (v *Customer_access_tokens, err error) {
+	return GetCustomer_access_tokensByTokenContext(context.Background(), token)
+}
+
+// GetAllCustomer_access_tokens is a compatibility wrapper. Request handlers use GetAllCustomer_access_tokensContext.
+func GetAllCustomer_access_tokens(query map[string]string, fields []string, sortby []string, order []string,
+	offset int64, limit int64) (ml []interface{}, err error) {
+	return GetAllCustomer_access_tokensContext(context.Background(), query, fields, sortby, order, offset, limit)
+}
+
+// UpdateCustomer_access_tokensById is a compatibility wrapper. Request handlers use UpdateCustomer_access_tokensByIdContext.
+func UpdateCustomer_access_tokensById(m *Customer_access_tokens) (err error) {
+	return UpdateCustomer_access_tokensByIdContext(context.Background(), m)
+}
+
+// UpdateCustomer_access_tokensByCustomer is a compatibility wrapper. Request handlers use UpdateCustomer_access_tokensByCustomerContext.
+func UpdateCustomer_access_tokensByCustomer(m *Customer_access_tokens) (err error) {
+	return UpdateCustomer_access_tokensByCustomerContext(context.Background(), m)
+}
+
+// DeleteCustomer_access_tokens is a compatibility wrapper. Request handlers use DeleteCustomer_access_tokensContext.
+func DeleteCustomer_access_tokens(id int64) (err error) {
+	return DeleteCustomer_access_tokensContext(context.Background(), id)
 }
