@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -50,9 +51,14 @@ func AddCustomers(m *Customers) (id int64, err error) {
 // GetCustomersById retrieves Customers by Id. Returns error if
 // Id doesn't exist
 func GetCustomersById(id int64) (v *Customers, err error) {
+	return GetCustomersByIdCtx(context.Background(), id)
+}
+
+// GetCustomersByIdCtx is GetCustomersById with request context propagation.
+func GetCustomersByIdCtx(ctx context.Context, id int64) (v *Customers, err error) {
 	o := orm.NewOrm()
 	v = &Customers{CustomerId: id}
-	if err = o.QueryTable(new(Customers)).Filter("CustomerId", id).RelatedSel().One(v); err == nil {
+	if err = o.QueryTable(new(Customers)).Filter("CustomerId", id).RelatedSel().OneWithCtx(ctx, v); err == nil {
 		return v, nil
 	}
 	return nil, err

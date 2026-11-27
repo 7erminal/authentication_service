@@ -1,14 +1,15 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type Users struct {
@@ -66,32 +67,35 @@ func GetUsersById(id int64) (v *Users, err error) {
 // GetUsersById retrieves Users by username. Returns error if
 // Id doesn't exist
 func GetUsersByUsername(username string) (v *Users, err error) {
+	return GetUsersByUsernameCtx(context.Background(), username)
+}
+
+// GetUsersByUsernameCtx is GetUsersByUsername with request context
+// propagation. It matches the username against email, then phone number, then
+// username.
+func GetUsersByUsernameCtx(ctx context.Context, username string) (v *Users, err error) {
 	o := orm.NewOrm()
 	v = &Users{}
 	qs := o.QueryTable(new(Users))
 
-	if err = qs.Filter("Email", username).RelatedSel().One(v); err == nil {
-		logs.Debug("Loaded user details ", v.UserDetails)
-		_, err := o.LoadRelated(v, "UserDetails")
+	if err = qs.Filter("Email", username).RelatedSel().OneWithCtx(ctx, v); err == nil {
+		_, err := o.LoadRelatedWithCtx(ctx, v, "UserDetails")
 		if err != nil {
-			logs.Error("Error loading user details ", err)
+			slog.ErrorContext(ctx, "error loading user details", "user_id", v.UserId, "error", err.Error())
 		} else {
-			logs.Debug("Loaded user details ", v.UserDetails)
-			_, err := o.LoadRelated(v.UserDetails, "Shop")
+			_, err := o.LoadRelatedWithCtx(ctx, v.UserDetails, "Shop")
 			if err != nil {
-				logs.Error("Error loading user details ", err)
-			} else {
-				logs.Debug("Loaded user details ", v.UserDetails)
+				slog.ErrorContext(ctx, "error loading user details shop", "user_id", v.UserId, "error", err.Error())
 			}
 		}
-		logs.Debug("Got the email")
+		slog.DebugContext(ctx, "user matched", "user_id", v.UserId, "matched_on", "email")
 		return v, nil
-	} else if err = qs.Filter("PhoneNumber", username).RelatedSel().One(v); err == nil {
-		logs.Debug("Got the Phone number")
+	} else if err = qs.Filter("PhoneNumber", username).RelatedSel().OneWithCtx(ctx, v); err == nil {
+		slog.DebugContext(ctx, "user matched", "user_id", v.UserId, "matched_on", "phone_number")
 		// o.LoadRelated(&v.UserDetails, "Shop")
 		return v, nil
-	} else if err = qs.Filter("Username", username).RelatedSel().One(v); err == nil {
-		logs.Debug("Got the Username")
+	} else if err = qs.Filter("Username", username).RelatedSel().OneWithCtx(ctx, v); err == nil {
+		slog.DebugContext(ctx, "user matched", "user_id", v.UserId, "matched_on", "username")
 		// o.LoadRelated(&v.UserDetails, "Shop")
 		return v, nil
 	}

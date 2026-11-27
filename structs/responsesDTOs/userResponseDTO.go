@@ -34,6 +34,7 @@ type UserResponseDTO struct {
 	StatusCode int
 	User       *models.Users
 	StatusDesc string
+	RequestId  string `json:"request_id,omitempty"`
 }
 
 type UserTokenResponseDTO struct {
@@ -50,6 +51,7 @@ type CustomerResponseDTO struct {
 	StatusCode int
 	Result     *models.Customers
 	StatusDesc string
+	RequestId  string `json:"request_id,omitempty"`
 }
 
 type CustomerAccessTokenData struct {
@@ -69,6 +71,7 @@ type CustomerAccessTokenResponseDTO struct {
 	StatusCode int
 	Result     *CustomerAccessTokenData
 	StatusDesc string
+	RequestId  string `json:"request_id,omitempty"`
 }
 
 type LoginResponseDTO struct {
@@ -77,4 +80,5 @@ type LoginResponseDTO struct {
 	RefreshToken string
 	User         *models.Users
 	StatusDesc   string
+	RequestId    string `json:"request_id,omitempty"`
 }

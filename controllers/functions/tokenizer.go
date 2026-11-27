@@ -1,13 +1,16 @@
 package functions
 
 import (
+	"context"
+	"log/slog"
+
+	"authentication_service/internal/logger"
 	"authentication_service/models"
 	"authentication_service/structs/responsesDTOs"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -28,7 +31,6 @@ func GenerateKey() ([]byte, error) {
 }
 
 func CreateAccessToken(username string) (string, int64, error) {
-	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -45,7 +47,6 @@ func CreateAccessToken(username string) (string, int64, error) {
 }
 
 func CreateCustomerAccessToken(username string, customer models.Customers) (string, int64, error) {
-	logs.Info("Creating access token for username: ", username, " and time now: ", time.Now())
 	expiryTime := time.Now().UTC().Add(time.Hour * 1).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		func() jwt.MapClaims {
@@ -164,42 +165,49 @@ func VerifyToken(tokenString string) (bool, error) {
 }
 
 func CheckTokenExpiry(token_ string) (responsesDTOs.UserTokenResponseDTO, error) {
+	return CheckTokenExpiryCtx(context.Background(), token_)
+}
+
+// CheckTokenExpiryCtx is CheckTokenExpiry with request context propagation.
+// The token value is never logged.
+func CheckTokenExpiryCtx(ctx context.Context, token_ string) (responsesDTOs.UserTokenResponseDTO, error) {
 
 	if token, err := VerifyToken(token_); err == nil {
 		if token {
-			logs.Info("Valid token...")
-			if tokenObj, err := models.GetAccessTokensByToken(token_); err == nil {
-				logs.Info("Token fetched is ", tokenObj.Token)
-				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-				logs.Info("Time now is ", time.Now())
-
+			if tokenObj, err := models.GetAccessTokensByTokenCtx(ctx, token_); err == nil {
 				if tokenObj.ExpiresAt.After(time.Now().UTC()) {
-					logs.Info("Token is valid")
+					slog.DebugContext(ctx, "access token is valid", "access_token_id", tokenObj.AccessTokenId)
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: true, User: tokenObj.User}
 					return resp, nil
 				} else {
-					logs.Info("Token has expired")
+					slog.DebugContext(ctx, "access token has expired", "access_token_id", tokenObj.AccessTokenId)
 					resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 					return resp, nil
 				}
 			} else {
-				logs.Error("Token does not exist...", err.Error())
+				slog.InfoContext(ctx, "access token does not exist", logger.Err(err))
 				resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 				return resp, err
 			}
 		} else {
-			logs.Error("Token is invalid...")
+			slog.InfoContext(ctx, "access token is invalid")
 			resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 			return resp, nil
 		}
 	} else {
-		logs.Error("Error validating token...", err.Error())
+		slog.InfoContext(ctx, "error validating access token", logger.Err(err))
 		resp := responsesDTOs.UserTokenResponseDTO{IsValid: false, User: nil}
 		return resp, err
 	}
 }
 
 func GetUserFromBearerToken(authorizationHeader string) (*models.Users, error) {
+	return GetUserFromBearerTokenCtx(context.Background(), authorizationHeader)
+}
+
+// GetUserFromBearerTokenCtx is GetUserFromBearerToken with request context
+// propagation. The Authorization header is never logged.
+func GetUserFromBearerTokenCtx(ctx context.Context, authorizationHeader string) (*models.Users, error) {
 	authorizationHeader = strings.TrimSpace(authorizationHeader)
 	if authorizationHeader == "" {
 		return nil, fmt.Errorf("authorization header is required")
@@ -216,7 +224,7 @@ func GetUserFromBearerToken(authorizationHeader string) (*models.Users, error) {
 		return nil, fmt.Errorf("access token is missing")
 	}
 
-	tokenResp, err := CheckTokenExpiry(tokenString)
+	tokenResp, err := CheckTokenExpiryCtx(ctx, tokenString)
 	if err != nil {
 		return nil, err
 	}
@@ -234,15 +242,6 @@ func CheckCustomerTokenExpiry(token_ string) (responsesDTOs.CustomerTokenRespons
 		if token {
 			logs.Info("Valid token...")
 			if tokenObj, err := models.GetCustomer_access_tokensByToken(token_); err == nil {
-				logs.Info("Token fetched is ", tokenObj.Token)
-				logs.Info("Token expiry is ", tokenObj.ExpiresAt)
-				logs.Info("Time now is ", time.Now().UTC())
-				customerJson, err := json.Marshal(tokenObj.Customer)
-				if err != nil {
-					logs.Error("Error marshalling customer to JSON: ", err.Error())
-				} else {
-					logs.Info("Customer for token is ", string(customerJson))
-				}
 
 				if tokenObj.ExpiresAt.After(time.Now().UTC()) {
 					logs.Info("Token is valid")
@@ -355,8 +354,6 @@ func EncryptInfo(plaintext string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
-		logs.Info("hashed password generated ", string(hashedPassword))
 
 		// Check if hash contains a slash
 		if !strings.Contains(string(hashedPassword), "/") {

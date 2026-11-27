@@ -1,14 +1,15 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
-	"github.com/beego/beego/v2/core/logs"
 )
 
 type AccessTokens struct {
@@ -30,8 +31,13 @@ func init() {
 // AddAccessTokens insert a new AccessTokens into database and returns
 // last inserted Id on success.
 func AddAccessTokens(m *AccessTokens) (id int64, err error) {
+	return AddAccessTokensCtx(context.Background(), m)
+}
+
+// AddAccessTokensCtx is AddAccessTokens with request context propagation.
+func AddAccessTokensCtx(ctx context.Context, m *AccessTokens) (id int64, err error) {
 	o := orm.NewOrm()
-	id, err = o.Insert(m)
+	id, err = o.InsertWithCtx(ctx, m)
 	return
 }
 
@@ -49,16 +55,22 @@ func GetAccessTokensById(id int64) (v *AccessTokens, err error) {
 // GetAccessTokensById retrieves AccessTokens by Id. Returns error if
 // Id doesn't exist
 func GetAccessTokensByToken(token string) (v *AccessTokens, err error) {
+	return GetAccessTokensByTokenCtx(context.Background(), token)
+}
+
+// GetAccessTokensByTokenCtx is GetAccessTokensByToken with request context
+// propagation.
+func GetAccessTokensByTokenCtx(ctx context.Context, token string) (v *AccessTokens, err error) {
 	o := orm.NewOrm()
 	v = &AccessTokens{Token: token}
-	if err = o.QueryTable(new(AccessTokens)).Filter("Token", token).RelatedSel().One(v); err == nil {
-		_, err = o.LoadRelated(v.User, "UserDetails")
+	if err = o.QueryTable(new(AccessTokens)).Filter("Token", token).RelatedSel().OneWithCtx(ctx, v); err == nil {
+		_, err = o.LoadRelatedWithCtx(ctx, v.User, "UserDetails")
 		if err != nil {
-			logs.Error("Error loading related User details: ", err)
+			slog.ErrorContext(ctx, "error loading related user details", "access_token_id", v.AccessTokenId, "error", err.Error())
 		} else {
-			_, err = o.LoadRelated(v.User.UserDetails, "Branch")
+			_, err = o.LoadRelatedWithCtx(ctx, v.User.UserDetails, "Branch")
 			if err != nil {
-				logs.Error("Error loading related User details branch: ", err)
+				slog.ErrorContext(ctx, "error loading related user details branch", "access_token_id", v.AccessTokenId, "error", err.Error())
 			}
 		}
 		return v, nil
@@ -143,13 +155,19 @@ func GetAllAccessTokens(query map[string]string, fields []string, sortby []strin
 // UpdateAccessTokens updates AccessTokens by Id and returns error if
 // the record to be updated doesn't exist
 func UpdateAccessTokensById(m *AccessTokens) (err error) {
+	return UpdateAccessTokensByIdCtx(context.Background(), m)
+}
+
+// UpdateAccessTokensByIdCtx is UpdateAccessTokensById with request context
+// propagation.
+func UpdateAccessTokensByIdCtx(ctx context.Context, m *AccessTokens) (err error) {
 	o := orm.NewOrm()
 	v := AccessTokens{AccessTokenId: m.AccessTokenId}
 	// ascertain id exists in the database
-	if err = o.Read(&v); err == nil {
+	if err = o.ReadWithCtx(ctx, &v); err == nil {
 		var num int64
-		if num, err = o.Update(m); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m); err == nil {
+			slog.DebugContext(ctx, "records updated", "table", "access_tokens", "access_token_id", m.AccessTokenId, "rows", num)
 		}
 	}
 	return
@@ -158,14 +176,19 @@ func UpdateAccessTokensById(m *AccessTokens) (err error) {
 // UpdateAccessTokens updates AccessTokens by User Id and returns error if
 // the record to be updated doesn't exist
 func UpdateAccessTokensByUserId(m *AccessTokens) (err error) {
+	return UpdateAccessTokensByUserIdCtx(context.Background(), m)
+}
+
+// UpdateAccessTokensByUserIdCtx is UpdateAccessTokensByUserId with request
+// context propagation.
+func UpdateAccessTokensByUserIdCtx(ctx context.Context, m *AccessTokens) (err error) {
 	o := orm.NewOrm()
 	v := AccessTokens{User: m.User}
 	// ascertain id exists in the database
-	if err = o.Read(&v, "User"); err == nil {
-		logs.Info("User found ", v, m)
+	if err = o.ReadWithCtx(ctx, &v, "User"); err == nil {
 		var num int64
-		if num, err = o.Update(m, "Revoked"); err == nil {
-			fmt.Println("Number of records updated in database:", num)
+		if num, err = o.UpdateWithCtx(ctx, m, "Revoked"); err == nil {
+			slog.DebugContext(ctx, "records updated", "table", "access_tokens", "access_token_id", m.AccessTokenId, "rows", num)
 		}
 	}
 	return

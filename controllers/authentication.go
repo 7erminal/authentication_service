@@ -2,23 +2,25 @@ package controllers
 
 import (
 	"authentication_service/controllers/functions"
+	"authentication_service/internal/logger"
+	"authentication_service/internal/trace"
 	"authentication_service/models"
 	"authentication_service/structs/requestsDTOs"
 	"authentication_service/structs/responsesDTOs"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/beego/beego/v2/core/logs"
-	beego "github.com/beego/beego/v2/server/web"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthenticationController operations for Authentication
 type AuthenticationController struct {
-	beego.Controller
+	BaseController
 }
 
 // URLMapping ...
@@ -58,7 +60,7 @@ func (c *AuthenticationController) Login() {
 	var v models.AuthenticationDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Password, v.Username)
+	logs.Info("Login request received")
 
 	if a, err := models.GetUsersByUsername(v.Username); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
@@ -133,14 +135,13 @@ func (c *AuthenticationController) Login() {
 // @Failure 403 body is empty
 // @router /login/token [post]
 func (c *AuthenticationController) LoginToken() {
+	ctx := c.reqCtx()
 	var v models.AuthenticationDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Password, v.Username)
+	slog.InfoContext(ctx, "user login requested")
 
 	ipAddress := c.Ctx.Request.RemoteAddr
-
-	logs.Info("IP Address ", ipAddress)
 
 	statusCode := 400
 	statusMessage := "Failed"
@@ -148,17 +149,14 @@ func (c *AuthenticationController) LoginToken() {
 	refreshTokenObj := &models.RefreshTokens{}
 	// userAgent := c.Ctx.Request.UserAgent()
 
-	if a, err := models.GetUsersByUsername(strings.Trim(v.Username, " ")); err == nil {
+	if a, err := models.GetUsersByUsernameCtx(ctx, strings.Trim(v.Username, " ")); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
-		// logs.Info("User role is ", a.Role.Role)
-		logs.Info("User credentials fetched for user ", a.Username)
+		slog.InfoContext(ctx, "user credentials fetched", "user_id", a.UserId)
 		if a.Active == 1 {
 			if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
 				// If the two passwords don't match, return a 401 status
-				logs.Info("Invalid password provided")
+				slog.InfoContext(ctx, "user login failed: incorrect password", "user_id", a.UserId)
 				c.Data["json"] = err.Error()
-
-				logs.Error(err.Error())
 
 				statusCode = 605
 				statusMessage = "Incorrect password"
@@ -168,15 +166,13 @@ func (c *AuthenticationController) LoginToken() {
 			} else {
 				c.Ctx.Output.SetStatus(200)
 
-				logs.Info("Successfully validated credentials")
+				slog.InfoContext(ctx, "user credentials validated", "user_id", a.UserId)
 
 				// Create access token (15 minutes expiry)
 				token, expiryTime, err := functions.CreateAccessToken(v.Username)
 
-				logs.Info("access Token created is ", token)
-
 				if err != nil {
-					logs.Error("Error updating token. ", err.Error())
+					slog.ErrorContext(ctx, "error generating access token", "user_id", a.UserId, logger.Err(err))
 					statusCode = 301
 					statusMessage = "Error generating token"
 					var resp = responsesDTOs.StringResponseDTO{StatusCode: statusCode, Value: "", StatusDesc: statusMessage}
@@ -184,8 +180,8 @@ func (c *AuthenticationController) LoginToken() {
 				} else {
 					// Revoke old tokens for this user
 					updateToken := models.AccessTokens{User: a, Revoked: true}
-					if err := models.UpdateAccessTokensByUserId(&updateToken); err != nil {
-						logs.Error("Error revoking old tokens. ", err.Error())
+					if err := models.UpdateAccessTokensByUserIdCtx(ctx, &updateToken); err != nil {
+						slog.WarnContext(ctx, "error revoking old access tokens", "user_id", a.UserId, logger.Err(err))
 					}
 
 					t := time.Unix(expiryTime, 0)
@@ -196,21 +192,20 @@ func (c *AuthenticationController) LoginToken() {
 						DateCreated:  time.Now(),
 						DateModified: time.Now(),
 					}
-					if _, err := models.AddAccessTokens(&tokenObj); err == nil {
+					if _, err := models.AddAccessTokensCtx(ctx, &tokenObj); err == nil {
 						statusCode = 200
 						statusMessage = "Access token generated successfully"
 						accessTokenObj = &tokenObj
+						slog.InfoContext(ctx, "access token issued", "user_id", a.UserId, "access_token_id", tokenObj.AccessTokenId)
 
 						// Create refresh token (7 days)
 						refreshToken, refreshExpiryTime, err := functions.CreateRefreshToken(v.Username)
 						if err != nil {
-							logs.Error("Error generating refresh token: ", err.Error())
+							slog.ErrorContext(ctx, "error generating refresh token", "user_id", a.UserId, logger.Err(err))
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
 							return
 						}
-
-						logs.Info("Refresh token generated is ", refreshToken)
 
 						// Store refresh token
 						refreshTokenObj = &models.RefreshTokens{
@@ -224,15 +219,15 @@ func (c *AuthenticationController) LoginToken() {
 							DateModified: time.Now(),
 						}
 
-						if _, err := models.AddRefreshTokens(refreshTokenObj); err != nil {
-							logs.Error("Error saving refresh token: ", err.Error())
+						if _, err := models.AddRefreshTokensCtx(ctx, refreshTokenObj); err != nil {
+							slog.ErrorContext(ctx, "error saving refresh token", "user_id", a.UserId, logger.Err(err))
 							c.Data["json"] = err.Error()
 							c.ServeJSON()
 							return
 						}
-						logs.Info("Refresh token saved successfully::  ", refreshTokenObj.Token)
+						slog.InfoContext(ctx, "refresh token issued", "user_id", a.UserId, "refresh_token_id", refreshTokenObj.RefreshTokenId)
 					} else {
-						logs.Error("Error adding token. ", err.Error())
+						slog.ErrorContext(ctx, "error saving access token", "user_id", a.UserId, logger.Err(err))
 						statusCode = 301
 						statusMessage = "Error generating token"
 					}
@@ -240,13 +235,12 @@ func (c *AuthenticationController) LoginToken() {
 				}
 			}
 		} else {
-			logs.Error("User is not active ", a.Active)
+			slog.WarnContext(ctx, "user login rejected: inactive user", "user_id", a.UserId)
 			statusCode = 607
 			statusMessage = "Inactive user"
 		}
 	} else {
-		logs.Error("Unable to find user ", v.Username)
-		logs.Error(err.Error())
+		slog.InfoContext(ctx, "user login failed: user not found", logger.Err(err))
 		statusCode = 605
 		statusMessage = "Unidentified user"
 	}
@@ -264,7 +258,7 @@ func (c *AuthenticationController) LoginToken() {
 		Token:    &tokenResponse,
 	}
 
-	logs.Info("Refresh token returned is ", result.Token.RefreshToken)
+	slog.InfoContext(ctx, "user login completed", "status_code", statusCode)
 
 	var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: statusCode, StatusDesc: statusMessage, Result: &result}
 	c.Data["json"] = resp
@@ -279,25 +273,23 @@ func (c *AuthenticationController) LoginToken() {
 // @Failure 403 body is empty
 // @router /refresh/user/token [post]
 func (c *AuthenticationController) RefreshAccessToken() {
+	ctx := c.reqCtx()
 	refreshToken := c.Ctx.Input.Header("RefreshToken")
 
-	logs.Info("Refresh token request received. Refresh token is ", refreshToken)
+	slog.InfoContext(ctx, "user refresh token request received")
 
-	logs.Info("About to go get refresh token")
 	// Validate refresh token
-	if refreshTokenObj, err := models.GetRefreshTokensByToken(refreshToken); err == nil {
-		logs.Info("Refresh token found in database ", refreshTokenObj.Token)
+	if refreshTokenObj, err := models.GetRefreshTokensByTokenCtx(ctx, refreshToken); err == nil {
+		slog.InfoContext(ctx, "refresh token found", "refresh_token_id", refreshTokenObj.RefreshTokenId)
 		if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 			// Create new access token
-			logs.Info("Refresh token is valid. Generating new access token...")
 			accessToken, accessExpiryTime, err := functions.CreateAccessToken(refreshTokenObj.User.Username)
 			if err != nil {
+				slog.ErrorContext(ctx, "error generating access token", "refresh_token_id", refreshTokenObj.RefreshTokenId, logger.Err(err))
 				c.Data["json"] = err.Error()
 				c.ServeJSON()
 				return
 			}
-
-			logs.Info("New access token generated is ", accessToken)
 
 			accessTokenObj := models.AccessTokens{
 				User:        refreshTokenObj.User,
@@ -307,11 +299,13 @@ func (c *AuthenticationController) RefreshAccessToken() {
 				DateCreated: time.Now(),
 			}
 
-			if _, err := models.AddAccessTokens(&accessTokenObj); err != nil {
+			if _, err := models.AddAccessTokensCtx(ctx, &accessTokenObj); err != nil {
+				slog.ErrorContext(ctx, "error saving access token", "refresh_token_id", refreshTokenObj.RefreshTokenId, logger.Err(err))
 				c.Data["json"] = err.Error()
 				c.ServeJSON()
 				return
 			}
+			slog.InfoContext(ctx, "access token refreshed", "refresh_token_id", refreshTokenObj.RefreshTokenId, "access_token_id", accessTokenObj.AccessTokenId)
 
 			var tokenResponse = responsesDTOs.TokenResponseDTO{
 				AccessToken:  accessToken,
@@ -327,13 +321,11 @@ func (c *AuthenticationController) RefreshAccessToken() {
 				Token:    &tokenResponse,
 			}
 
-			logs.Info("Refresh token returned is ", result.Token.RefreshToken)
-
 			var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Access token generated successfully", Result: &result}
 
 			c.Data["json"] = resp
 		} else {
-			logs.Error("Refresh token expired or revoked")
+			slog.InfoContext(ctx, "refresh token expired or revoked", "refresh_token_id", refreshTokenObj.RefreshTokenId)
 			c.Ctx.Output.SetStatus(401)
 			var resp = responsesDTOs.StringResponseDTO{
 				StatusCode: 605,
@@ -344,7 +336,7 @@ func (c *AuthenticationController) RefreshAccessToken() {
 			c.Data["json"] = resp
 		}
 	} else {
-		logs.Error("Invalid refresh token provided, ", err.Error())
+		slog.InfoContext(ctx, "invalid refresh token provided", logger.Err(err))
 		c.Ctx.Output.SetStatus(401)
 		var resp = responsesDTOs.StringResponseDTO{
 			StatusCode: 605,
@@ -364,15 +356,14 @@ func (c *AuthenticationController) RefreshAccessToken() {
 // @Failure 403 body is empty
 // @router /validate-customer-credentials/token [post]
 func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
+	ctx := c.reqCtx()
 	var v models.AuthenticationDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Password, v.Username)
-
 	ipAddress := c.Ctx.Request.RemoteAddr
 
-	logs.Info("IP Address ", ipAddress)
 	clientCode := c.Ctx.Input.Header("clientCode")
+	slog.InfoContext(ctx, "customer login requested", "client_code", clientCode)
 
 	trimUsername := strings.TrimSpace(v.Username)
 
@@ -383,62 +374,54 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 	pinSet := false
 
 	if clientCode != "" {
-		if a, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(trimUsername, clientCode); err == nil {
+		if a, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCodeCtx(ctx, trimUsername, clientCode); err == nil {
 			// Compare the stored hashed password, with the hashed version of the password that was received
-			logs.Info("Customer credentials fetched")
+			slog.InfoContext(ctx, "customer credentials fetched", "customer_credential_id", a.Id)
 			if a.Active == 1 {
-				logs.Info("Password is ", v.Password)
 				if err := bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(v.Password)); err != nil {
 					// If the two passwords don't match, return a 401 status
-					logs.Info("Password hash is ", a.Password)
-					logs.Error("Password incorrect")
+					slog.InfoContext(ctx, "customer login failed: incorrect password", "customer_credential_id", a.Id)
 					c.Data["json"] = err.Error()
-
-					logs.Error(err.Error())
 
 					statusCode = 605
 					statusMessage = "Incorrect password"
 				} else {
 					c.Ctx.Output.SetStatus(200)
 
-					if customer, err := models.GetCustomersById(a.Customer.CustomerId); err != nil {
-						logs.Error("Error fetching customer: ", err.Error())
+					if customer, err := models.GetCustomersByIdCtx(ctx, a.Customer.CustomerId); err != nil {
+						slog.ErrorContext(ctx, "error fetching customer", "customer_id", a.Customer.CustomerId, logger.Err(err))
 					} else {
 
 						token, expiryTime, err := functions.CreateCustomerAccessToken(v.Username, *customer)
-
-						logs.Info("Token created is ", token)
 
 						if a.Pin != "1234" {
 							pinSet = true
 						}
 
 						if err != nil {
-							logs.Error("Error updating token. ", err.Error())
+							slog.ErrorContext(ctx, "error generating customer access token", "customer_id", customer.CustomerId, logger.Err(err))
 							var resp = responsesDTOs.StringResponseDTO{StatusCode: 301, Value: "", StatusDesc: "Error generating token"}
 							c.Data["json"] = resp
 						} else {
 							updateToken := models.Customer_access_tokens{Customer: a.Customer, Revoked: true}
-							if err := models.UpdateCustomer_access_tokensByCustomer(&updateToken); err != nil {
+							if err := models.UpdateCustomer_access_tokensByCustomerCtx(ctx, &updateToken); err != nil {
 								statusMessage = fmt.Sprintf("Error revoking old tokens. %s", err.Error())
-								logs.Error(statusMessage)
+								slog.WarnContext(ctx, "error revoking old customer access tokens", "customer_id", customer.CustomerId, logger.Err(err))
 							}
-							logs.Info("Old tokens revoked successfully. Generating new token...")
 							t := time.Unix(expiryTime, 0)
 							accessTokenObj = &models.Customer_access_tokens{Customer: a.Customer, Token: token, ExpiresAt: t, DateCreated: time.Now()}
-							if _, err := models.AddCustomer_access_tokens(accessTokenObj); err == nil {
-								logs.Info("Access token added successfully")
+							if _, err := models.AddCustomer_access_tokensCtx(ctx, accessTokenObj); err == nil {
+								slog.InfoContext(ctx, "customer access token issued", "customer_id", customer.CustomerId, "customer_access_token_id", accessTokenObj.Id)
 								statusCode = 200
 								statusMessage = "Access token generated successfully"
 
 								// Create refresh token (7 days)
 								refreshToken, refreshExpiryTime, err := functions.CreateCustomerRefreshToken(v.Username)
 								if err != nil {
-									logs.Error("Error generating refresh token: ", err.Error())
+									slog.ErrorContext(ctx, "error generating customer refresh token", "customer_id", customer.CustomerId, logger.Err(err))
 									statusCode = 301
 									statusMessage = "Error generating token"
 								} else {
-									logs.Info("Refresh Token created is ", refreshToken)
 									// Store refresh token
 									refreshTokenObj = &models.CustomerRefreshTokens{
 										Customer:     a.Customer,
@@ -451,48 +434,46 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 										DateModified: time.Now(),
 									}
 
-									if _, err := models.AddCustomerRefreshTokens(refreshTokenObj); err != nil {
-										logs.Error("Error saving refresh token: ", err.Error())
+									if _, err := models.AddCustomerRefreshTokensCtx(ctx, refreshTokenObj); err != nil {
+										slog.ErrorContext(ctx, "error saving customer refresh token", "customer_id", customer.CustomerId, logger.Err(err))
 										statusCode = 301
 										statusMessage = "Error generating token"
 									} else {
-										logs.Info("Refresh token added successfully")
+										slog.InfoContext(ctx, "customer refresh token issued", "customer_id", customer.CustomerId, "refresh_token_id", refreshTokenObj.RefreshTokenId)
 										statusCode = 200
 										statusMessage = "Tokens generated successfully"
 									}
 								}
 							} else {
-								logs.Error("Error adding token. ", err.Error())
+								slog.ErrorContext(ctx, "error saving customer access token", "customer_id", customer.CustomerId, logger.Err(err))
 								statusCode = 301
 								statusMessage = "Error generating token"
 							}
 
 						}
-						logs.Info("Customer fetched successfully: ", a)
 					}
 				}
 			} else {
-				logs.Error("Customer is not active ", a.Active)
+				slog.WarnContext(ctx, "customer login rejected: inactive customer", "customer_credential_id", a.Id)
 				var resp = responsesDTOs.StringResponseDTO{StatusCode: 607, Value: "", StatusDesc: "Inactive Customer"}
 				c.Data["json"] = resp
 			}
 		} else {
-			logs.Error("Customer not found with username: ", trimUsername, " and client code: ", clientCode)
-			logs.Info("Proceeding to fetch with only username")
-			if a, err := models.GetCustomer_credentialsByCustomerUsername(trimUsername); err == nil {
-				logs.Info("Customer fetched with only username: ", a.Username)
+			slog.InfoContext(ctx, "customer not found for client code, retrying with username only", "client_code", clientCode, logger.Err(err))
+			if a, err := models.GetCustomer_credentialsByCustomerUsernameCtx(ctx, trimUsername); err == nil {
+				slog.InfoContext(ctx, "customer found by username only", "customer_credential_id", a.Id)
 				if a.ClientCode == "" {
 					statusCode = 213
 					statusMessage = "User Exists but not mapped to a client"
 				}
 			} else {
-				logs.Error(err.Error())
+				slog.InfoContext(ctx, "customer login failed: customer not found", logger.Err(err))
 				statusCode = 605
 				statusMessage = "Unidentified customer"
 			}
 		}
 	} else {
-		logs.Error("Client code is empty")
+		slog.InfoContext(ctx, "customer login rejected: client code is empty")
 		statusCode = 301
 		statusMessage = "Client code is empty"
 	}
@@ -511,7 +492,7 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 		UserType: userType,
 		Token:    &tokenResponse,
 	}
-	logs.Info("Login response being sent is ", result)
+	slog.InfoContext(ctx, "customer login completed", "status_code", statusCode, "pin_set", pinSet)
 
 	var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: statusCode, StatusDesc: statusMessage, Result: &result}
 	c.Data["json"] = resp
@@ -526,21 +507,23 @@ func (c *AuthenticationController) ValidateCustomerCredentialsToken() {
 // @Failure 403 body is empty
 // @router /refresh/customer/token [post]
 func (c *AuthenticationController) RefreshCustomerAccessToken() {
+	ctx := c.reqCtx()
 	refreshToken := c.Ctx.Input.Header("RefreshToken")
 
 	var v requestsDTOs.RefreshTokenRequest
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Refresh customer token request received")
+	slog.InfoContext(ctx, "customer refresh token request received")
 
 	// Validate refresh token
-	if refreshTokenObj, err := models.GetCustomerRefreshTokensByToken(refreshToken); err == nil {
-		if cc, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(v.Username, refreshTokenObj.UserAgent); err == nil {
+	if refreshTokenObj, err := models.GetCustomerRefreshTokensByTokenCtx(ctx, refreshToken); err == nil {
+		if cc, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCodeCtx(ctx, v.Username, refreshTokenObj.UserAgent); err == nil {
 
 			if refreshTokenObj.ExpiresAt.After(time.Now().UTC()) && !refreshTokenObj.Revoked {
 				// Create new access token
 				accessToken, accessExpiryTime, err := functions.CreateCustomerAccessToken(cc.Username, *refreshTokenObj.Customer)
 				if err != nil {
+					slog.ErrorContext(ctx, "error generating customer access token", "refresh_token_id", refreshTokenObj.RefreshTokenId, logger.Err(err))
 					c.Data["json"] = err.Error()
 					c.ServeJSON()
 					return
@@ -554,11 +537,13 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 					DateCreated: time.Now(),
 				}
 
-				if _, err := models.AddCustomer_access_tokens(&accessTokenObj); err != nil {
+				if _, err := models.AddCustomer_access_tokensCtx(ctx, &accessTokenObj); err != nil {
+					slog.ErrorContext(ctx, "error saving customer access token", "refresh_token_id", refreshTokenObj.RefreshTokenId, logger.Err(err))
 					c.Data["json"] = err.Error()
 					c.ServeJSON()
 					return
 				}
+				slog.InfoContext(ctx, "customer access token refreshed", "refresh_token_id", refreshTokenObj.RefreshTokenId, "customer_access_token_id", accessTokenObj.Id)
 
 				var data = responsesDTOs.TokenResponseDTO{
 					AccessToken:  accessToken,
@@ -574,11 +559,11 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 					UserType: userType,
 					Token:    &data,
 				}
-				logs.Info("Login response being sent is ", result)
 
 				var resp = responsesDTOs.LoginTokenResponseDTO{StatusCode: 200, StatusDesc: "Token generated", Result: &result}
 				c.Data["json"] = resp
 			} else {
+				slog.InfoContext(ctx, "customer refresh token expired or revoked", "refresh_token_id", refreshTokenObj.RefreshTokenId)
 				c.Ctx.Output.SetStatus(401)
 				var resp = responsesDTOs.StringResponseDTO{
 					StatusCode: 605,
@@ -588,6 +573,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 				c.Data["json"] = resp
 			}
 		} else {
+			slog.InfoContext(ctx, "customer for refresh token not found", "refresh_token_id", refreshTokenObj.RefreshTokenId, logger.Err(err))
 			c.Ctx.Output.SetStatus(200)
 			var resp = responsesDTOs.StringResponseDTO{
 				StatusCode: 608,
@@ -597,6 +583,7 @@ func (c *AuthenticationController) RefreshCustomerAccessToken() {
 			c.Data["json"] = resp
 		}
 	} else {
+		slog.InfoContext(ctx, "invalid customer refresh token provided", logger.Err(err))
 		c.Ctx.Output.SetStatus(401)
 		var resp = responsesDTOs.StringResponseDTO{
 			StatusCode: 605,
@@ -623,7 +610,7 @@ func (c *AuthenticationController) ChangePassword() {
 	var v requestsDTOs.ChangePassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.OldPassword, v.NewPassword)
+	logs.Info("Change password request received")
 
 	if a, err := models.GetUsersById(id); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
@@ -640,11 +627,8 @@ func (c *AuthenticationController) ChangePassword() {
 			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
 			if errr == nil {
-				logs.Debug(hashedPassword)
 
 				a.Password = string(hashedPassword)
-
-				logs.Debug("Sending", v.NewPassword)
 
 				// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
 			} else {
@@ -684,9 +668,7 @@ func (c *AuthenticationController) ResetPassword() {
 	var v requestsDTOs.ResetPassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.NewPassword)
-
-	logs.Info("About to decrypt token")
+	logs.Info("Reset password request received")
 
 	if a, err := models.GetUsersById(id); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
@@ -694,11 +676,8 @@ func (c *AuthenticationController) ResetPassword() {
 		hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
 		if errr == nil {
-			logs.Debug(hashedPassword)
 
 			a.Password = string(hashedPassword)
-
-			logs.Debug("Sending", v.NewPassword)
 
 			// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
 		} else {
@@ -738,13 +717,7 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 	var v requestsDTOs.ResetPassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.NewPassword)
-
-	reqBody := c.Ctx.Input.RequestBody
-	// reqHeaders := c.Ctx.Request.Header
-
-	logs.Info("Request is " + string(reqBody))
-	// logs.Info("Headers are "+string(reqHeaders[][]))
+	logs.Info("Reset customer password request received")
 
 	if a, err := models.GetCustomersById(id); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
@@ -755,12 +728,9 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 
 			if errr == nil {
 				logs.Info("Successfully encrypted password")
-				logs.Debug(hashedPassword)
 
 				custCred.Password = string(hashedPassword)
 				logs.Info("Password changed")
-
-				logs.Debug("Sending", v.NewPassword)
 
 				// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
 			} else {
@@ -802,14 +772,8 @@ func (c *AuthenticationController) ResetCustomerPassword() {
 // @Failure 403 body is empty
 // @router /change-customer-password/:username [put]
 func (c *AuthenticationController) ChangeCustomerPassword() {
+	ctx := c.reqCtx()
 	username := c.Ctx.Input.Param(":username")
-
-	// DEBUG: Print all headers to see what's being sent
-	logs.Info("=== ALL REQUEST HEADERS ===")
-	for key, values := range c.Ctx.Request.Header {
-		logs.Info("Header: ", key, " = ", strings.Join(values, ", "))
-	}
-	logs.Info("=== END HEADERS ===")
 
 	// Try both ClientCode and clientCode header variants for compatibility
 	clientCode := c.Ctx.Input.Header("ClientCode")
@@ -820,24 +784,18 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 	var v requestsDTOs.ChangePassword
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.NewPassword)
-
-	logs.Info("About to decrypt token")
-	logs.Info("Sending username ", username)
-	logs.Info("Sending client code ", clientCode)
-	logs.Info("Password is ", v.NewPassword)
-	logs.Info("Old password is ", v.OldPassword)
+	slog.InfoContext(ctx, "customer password change requested", "client_code", clientCode)
 
 	statusCode := 605
 	statusMessage := "Internal server error"
 	// Compare the stored hashed password, with the hashed version of the password that was received
 
-	if custCred, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(username, clientCode); err == nil {
+	if custCred, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCodeCtx(ctx, username, clientCode); err == nil {
 		if err := bcrypt.CompareHashAndPassword([]byte(custCred.Password), []byte(v.OldPassword)); err != nil {
 			// If the two passwords don't match, return a 401 status
 			c.Data["json"] = err.Error()
 
-			logs.Error(err.Error())
+			slog.InfoContext(ctx, "customer password change failed: old password does not match", "customer_credential_id", custCred.Id)
 			statusCode = 601
 			statusMessage = "Old password does not match"
 
@@ -845,84 +803,79 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 			hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 
 			if errr == nil {
-				logs.Debug(hashedPassword)
-
 				custCred.Password = string(hashedPassword)
 				custCred.DateModified = time.Now()
 
-				logs.Debug("Sending", v.NewPassword)
-
 				// models.Agents{AgentName: v.AgentName, BranchId: v.BranchId, IdType: v.IdType, IdNumber: v.IdNumber, IsVerified: false, Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: c_by, ModifiedBy: c_by}
 			} else {
-				logs.Error("Error hashing password ", errr.Error())
+				slog.ErrorContext(ctx, "error hashing password", "customer_credential_id", custCred.Id, logger.Err(errr))
 			}
 
-			if err := models.UpdateCustomer_credentialsById(custCred); err == nil {
+			if err := models.UpdateCustomer_credentialsByIdCtx(ctx, custCred); err == nil {
 				c.Ctx.Output.SetStatus(200)
 
+				slog.InfoContext(ctx, "customer password changed", "customer_credential_id", custCred.Id)
 				statusCode = 200
 				statusMessage = "Customer password has been changed successfully"
 			} else {
+				slog.ErrorContext(ctx, "error updating customer credentials", "customer_credential_id", custCred.Id, logger.Err(err))
 				statusCode = 608
 				statusMessage = "Customer password reset failed. " + err.Error()
 			}
 		}
 	} else {
-		logs.Error("Customer not found with username: ", username)
+		slog.InfoContext(ctx, "customer not found for client code, retrying with username only", "client_code", clientCode, logger.Err(err))
 		statusCode = 604
 		statusMessage = "Customer not found with username: " + username
 
 		// 	query map[string]string, fields []string, sortby []string, order []string,
 		// offset int64, limit int64
-		logs.Error("Customer not found with code. Getting customer with username: ", username)
 		query := map[string]string{"username": username}
+		// TODO(tracing): GetAllCustomer_credentials has no ctx variant yet.
 		if custCreds, err := models.GetAllCustomer_credentials(query, nil, nil, nil, 0, 1); err == nil {
 			if len(custCreds) > 0 {
-				logs.Info("Customer credentials found for username: ", username)
 				for _, custCred := range custCreds {
 					// Process each customer credential as needed
 					custModel := custCred.(models.Customer_credentials)
+					slog.InfoContext(ctx, "customer credentials found by username", "customer_credential_id", custModel.Id)
 					if err := bcrypt.CompareHashAndPassword([]byte(custModel.Password), []byte(v.OldPassword)); err != nil {
 						// If the two passwords don't match, return a 401 status
 						c.Data["json"] = err.Error()
-						logs.Debug("Old password does not match for username: ", username)
-						logs.Error(err.Error())
+						slog.InfoContext(ctx, "customer password change failed: old password does not match", "customer_credential_id", custModel.Id)
 						statusCode = 601
 						statusMessage = "Old password does not match"
 
 					} else {
-						logs.Info("Old password matches. Set new password")
 						hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
 						if errr == nil {
-							logs.Debug("Hashed new password successfully")
 							custModel.Password = string(hashedPassword)
 							custModel.DateModified = time.Now()
 							custModel.ClientCode = clientCode
 
-							if err := models.UpdateCustomer_credentialsById(&custModel); err != nil {
-								logs.Error("Error updating customer credentials ", err.Error())
+							if err := models.UpdateCustomer_credentialsByIdCtx(ctx, &custModel); err != nil {
+								slog.ErrorContext(ctx, "error updating customer credentials", "customer_credential_id", custModel.Id, logger.Err(err))
 								statusCode = 608
 								statusMessage = "Customer password reset failed. " + err.Error()
 							} else {
-								logs.Info("Customer credentials updated")
+								slog.InfoContext(ctx, "customer password changed", "customer_credential_id", custModel.Id)
 								statusCode = 200
 								statusMessage = "Customer password has been changed successfully"
 								break
 							}
 						} else {
-							logs.Error("Error hashing password ", errr.Error())
+							slog.ErrorContext(ctx, "error hashing password", "customer_credential_id", custModel.Id, logger.Err(errr))
 							statusCode = 609
 							statusMessage = "Customer password reset failed. " + errr.Error()
 						}
 					}
 				}
 			} else {
-				logs.Error("No customer credentials found for username: ", username)
+				slog.InfoContext(ctx, "customer password change failed: no customer credentials found")
 				statusCode = 604
 				statusMessage = "Customer credentials not found for username: " + username
 			}
 		} else {
-			logs.Error("Error retrieving customer credentials for username: ", username, " Error: ", err.Error())
+			slog.ErrorContext(ctx, "error retrieving customer credentials", logger.Err(err))
 			statusCode = 607
 			statusMessage = "Error retrieving customer credentials for username: " + username + ". " + err.Error()
 		}
@@ -941,18 +894,16 @@ func (c *AuthenticationController) ChangeCustomerPassword() {
 // @Failure 403 body is empty
 // @router /reset-password-link [post]
 func (c *AuthenticationController) ResetPasswordLink() {
+	ctx := c.reqCtx()
 	var v requestsDTOs.ResetPasswordLink
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Email)
+	slog.InfoContext(ctx, "password reset link requested", "link_count", len(v.Links))
 
-	if a, err := models.GetUsersByUsername(v.Email); err == nil {
+	if a, err := models.GetUsersByUsernameCtx(ctx, v.Email); err == nil {
 		// Compare the stored hashed password, with the hashed version of the password that was received
 
 		// hashedPassword, errr := bcrypt.GenerateFromPassword([]byte(v.NewPassword), 8)
-
-		// logs.Debug(hashedPassword)
-		fmt.Printf("Value of v: %+v\n", a)
 
 		rawString := v.Email + "___" + a.Role.Role
 
@@ -960,42 +911,33 @@ func (c *AuthenticationController) ResetPasswordLink() {
 
 		if token, nonce, err := functions.GetAESEncrypted(rawString); err == nil {
 
-			logs.Info("Token generated is ", token)
-			logs.Info("Nonce generated is ", nonce)
-			// logs.Info("Key generated is ", string(ikey[:]))
-
 			var userToken models.UserTokens = models.UserTokens{Token: token, Nonce: nonce, ExpiryDate: time.Now().Add(4 * time.Hour), Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: 1, ModifiedBy: 1}
 
 			_, err := models.AddUserTokens(&userToken)
 
 			if err != nil {
+				slog.ErrorContext(ctx, "error saving password reset token", "user_id", a.UserId, logger.Err(err))
 				return
 			}
-
-			logs.Debug("Message is ", v.Message)
-			logs.Debug("Subject is ", v.Subject)
-			logs.Debug("Links are ", v.Links)
-			logs.Debug("Sender is ", a.FullName)
+			slog.InfoContext(ctx, "password reset token created", "user_id", a.UserId, "user_token_id", userToken.UserTokenId)
 
 			namePlaceHolder := strings.Split(a.FullName, " | ")
 			name := strings.Join(namePlaceHolder, " ")
 			message_ := strings.Replace(v.Message, "[SENDER_NAME_ID]", name, -1)
-			logs.Info("Message with name is ", message_)
 
 			for i, link := range v.Links {
 				iStr := strconv.Itoa(i)
 				placeholder := "[LINK_" + iStr + "_ID]"
 				formattedLink := *link + token
 				message_ = strings.Replace(message_, placeholder, formattedLink, -1)
-				logs.Info("Message with link is ", message_)
 			}
 
-			logs.Debug("Sending", message_)
-
-			go functions.SendEmailNew(a.Email, v.Subject, message_)
+			// Background job: detach from the request's cancellation but keep
+			// the tracing IDs so the email worker logs correlate.
+			go functions.SendEmailNewCtx(trace.Detach(ctx), a.Email, v.Subject, message_)
 
 		} else {
-			logs.Error("Error validating token...", err.Error())
+			slog.ErrorContext(ctx, "error generating password reset token", "user_id", a.UserId, logger.Err(err))
 			var resp = responsesDTOs.StringResponseDTO{StatusCode: 703, Value: "", StatusDesc: "Error validating token"}
 			c.Data["json"] = resp
 		}
@@ -1015,7 +957,7 @@ func (c *AuthenticationController) ResetPasswordLink() {
 		// }
 
 	} else {
-		logs.Error(err.Error())
+		slog.InfoContext(ctx, "password reset link failed: user not found", logger.Err(err))
 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Unidentified user"}
 		c.Data["json"] = resp
 	}
@@ -1030,15 +972,12 @@ func (c *AuthenticationController) ResetPasswordLink() {
 // @Failure 403 body is empty
 // @router /customer-pin-validation [post]
 func (c *AuthenticationController) PinValidation() {
+	ctx := c.reqCtx()
 	var v requestsDTOs.PinAuthenticationDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Pin, v.Username)
-
-	ipAddress := c.Ctx.Request.RemoteAddr
-
-	logs.Info("IP Address ", ipAddress)
 	clientCode := c.Ctx.Input.Header("clientCode")
+	slog.InfoContext(ctx, "customer pin validation requested", "client_code", clientCode)
 
 	trimUsername := strings.TrimSpace(v.Username)
 
@@ -1047,39 +986,36 @@ func (c *AuthenticationController) PinValidation() {
 	value := ""
 
 	if clientCode != "" {
-		if a, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCode(trimUsername, clientCode); err == nil {
+		if a, err := models.GetCustomer_credentialsByCustomerUsernameAndClientCodeCtx(ctx, trimUsername, clientCode); err == nil {
 			// Compare the stored hashed password, with the hashed version of the password that was received
-			logs.Info("Customer credentials fetched")
+			slog.InfoContext(ctx, "customer credentials fetched", "customer_credential_id", a.Id)
 			if a.Active == 1 {
-				logs.Info("Pin is ", v.Pin)
 				if err := bcrypt.CompareHashAndPassword([]byte(a.Pin), []byte(v.Pin)); err != nil {
 					// If the two pins don't match, return a 401 status
-					logs.Info("Pin hash is ", a.Pin)
-					logs.Error("Pin incorrect ", err.Error())
+					slog.InfoContext(ctx, "customer pin validation failed: incorrect pin", "customer_credential_id", a.Id)
 					c.Data["json"] = err.Error()
-
-					logs.Error(err.Error())
 
 					statusCode = 605
 					statusMessage = "Incorrect password"
 				} else {
 					c.Ctx.Output.SetStatus(200)
+					slog.InfoContext(ctx, "customer pin validated", "customer_credential_id", a.Id)
 					statusCode = 200
 					value = "Pin validation successful"
 					statusMessage = "Successfully validated pin"
 				}
 			} else {
-				logs.Error("Customer is not active ", a.Active)
+				slog.WarnContext(ctx, "customer pin validation rejected: inactive customer", "customer_credential_id", a.Id)
 				statusCode = 607
 				statusMessage = "Inactive Customer"
 			}
 		} else {
-			logs.Error(err.Error())
+			slog.InfoContext(ctx, "customer pin validation failed: customer not found", logger.Err(err))
 			statusCode = 605
 			statusMessage = "Unidentified customer"
 		}
 	} else {
-		logs.Error("Client code is empty")
+		slog.InfoContext(ctx, "customer pin validation rejected: client code is empty")
 		statusCode = 301
 		statusMessage = "Client code is empty"
 	}
@@ -1102,7 +1038,6 @@ func (c *AuthenticationController) VerifyOTP() {
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
 	v, err := models.GetUsersByUsername(q.Username)
-	logs.Debug("Checking for username ", q.Username)
 
 	if err != nil {
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: 604, User: nil, StatusDesc: "User cannot be found"}
@@ -1110,7 +1045,7 @@ func (c *AuthenticationController) VerifyOTP() {
 		c.Data["json"] = resp
 	} else {
 		// Get OTP
-		logs.Debug("Got user. Now checking for user in OTP table ", v.UserId, v.Email, v.FullName)
+		logs.Debug("Got user. Now checking for user in OTP table ", v.UserId)
 		otp, err := models.VerifyUserOTP(v.UserId)
 
 		logs.Debug("User in OTP table ")
@@ -1193,7 +1128,6 @@ func (c *AuthenticationController) ResendOTP() {
 	} else {
 		// Generate random number
 		randNum := functions.EncodeToString(6)
-		logs.Debug("Random number generated is ", randNum)
 
 		expiryDate := time.Now().Local().Add(time.Hour*time.Duration(0) + time.Minute*time.Duration(5) + time.Second*time.Duration(0))
 
@@ -1229,19 +1163,13 @@ func (c *AuthenticationController) SendActivationCode() {
 	randNum := functions.EncodeToString(6)
 	// set OTP to 1111 for tests
 	randNum = "1111"
-	logs.Debug("Random number generated is ", randNum)
-	logs.Debug("Mobile number in request is ", q.MobileNumber)
 	proceed := false
 
 	if ac, err := models.GetActivationCodesByNumber(q.MobileNumber); err == nil {
 		// fmt.Printf("Value of v: %+v\n", ac)
 		for _, suc := range ac {
-			fmt.Printf("Value of v: %+v\n", suc)
 			singleAc, err := suc.(models.ActivationCodes)
 			logs.Debug("Activation...")
-			fmt.Printf("Type of v: %T\n", singleAc)
-			fmt.Printf("Value of v: %+v\n", singleAc)
-			logs.Debug(singleAc)
 			if !err {
 				singleAc.ExpiryDate = time.Now()
 				models.UpdateActivationCodesById(&singleAc)
@@ -1289,7 +1217,7 @@ func (c *AuthenticationController) VerifyActivationCode() {
 	var q requestsDTOs.VerifyActivationCodeDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Debug("Got request with mobile number ", q.MobileNumber, " and pin ", q.Password)
+	logs.Debug("Verify activation code request received")
 
 	if v, err := models.GetActivationCodeByNumber(q.MobileNumber); err != nil {
 		logs.Error("Code cannot be found. It either does not exist or has expired :: ", err.Error())
@@ -1355,24 +1283,25 @@ func (c *AuthenticationController) VerifyActivationCode() {
 // @Failure 403 body is empty
 // @router /token/check [post]
 func (c *AuthenticationController) CheckTokenExpiry() {
+	ctx := c.reqCtx()
 	var q requestsDTOs.StringRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Info("About to verify token ", q.Value)
+	slog.InfoContext(ctx, "user token check requested")
 
-	if token, err := functions.CheckTokenExpiry(q.Value); err == nil {
+	if token, err := functions.CheckTokenExpiryCtx(ctx, q.Value); err == nil {
 		if token.IsValid {
-			logs.Info("Token is still valid. User is ", token.User)
-			logs.Info("User role is ", token.User.Role.Role)
+			slog.InfoContext(ctx, "user token is valid", "user_id", token.User.UserId)
 
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 200, User: token.User, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {
+			slog.InfoContext(ctx, "user token is invalid or expired")
 			var resp = responsesDTOs.UserResponseDTO{StatusCode: 605, User: nil, StatusDesc: "Invalid token"}
 			c.Data["json"] = resp
 		}
 	} else {
-		logs.Error("Error validating token...", err.Error())
+		slog.InfoContext(ctx, "error validating user token", logger.Err(err))
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: 703, User: nil, StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
@@ -1387,17 +1316,19 @@ func (c *AuthenticationController) CheckTokenExpiry() {
 // @Failure 403 body is empty
 // @router /token/verify [post]
 func (c *AuthenticationController) VerifyToken() {
+	ctx := c.reqCtx()
 	var q requestsDTOs.TokenDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Info("About to verify token ", q.Token)
+	slog.InfoContext(ctx, "refresh token verification requested")
 
 	statusCode := 608
 	message := "Unable to verify token"
 
 	authorization := c.Ctx.Input.Header("Authorization")
-	requestUser, err := functions.GetUserFromBearerToken(authorization)
+	requestUser, err := functions.GetUserFromBearerTokenCtx(ctx, authorization)
 	if err != nil {
+		slog.InfoContext(ctx, "refresh token verification rejected: invalid or missing access token", logger.Err(err))
 		c.Ctx.Output.SetStatus(401)
 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Invalid or missing access token"}
 		c.Data["json"] = resp
@@ -1405,8 +1336,8 @@ func (c *AuthenticationController) VerifyToken() {
 		return
 	}
 
-	if tokenObj, err := models.GetRefreshTokensByToken(q.Token); err == nil {
-		logs.Info("Token object is ", tokenObj)
+	if tokenObj, err := models.GetRefreshTokensByTokenCtx(ctx, q.Token); err == nil {
+		slog.InfoContext(ctx, "refresh token found", "refresh_token_id", tokenObj.RefreshTokenId, "user_id", requestUser.UserId)
 
 		if tokenObj.User == nil {
 			statusCode = 703
@@ -1419,6 +1350,7 @@ func (c *AuthenticationController) VerifyToken() {
 
 		// Optional hardening: bind to device/network
 		if tokenObj.IPAddress != "" && tokenObj.IPAddress != c.Ctx.Request.RemoteAddr {
+			slog.InfoContext(ctx, "refresh token verification rejected: ip mismatch", "refresh_token_id", tokenObj.RefreshTokenId)
 			c.Ctx.Output.SetStatus(401)
 			c.Data["json"] = responsesDTOs.StringResponseDTO{
 				StatusCode: 605,
@@ -1430,6 +1362,7 @@ func (c *AuthenticationController) VerifyToken() {
 		}
 
 		if tokenObj.Revoked || !tokenObj.ExpiresAt.After(time.Now().UTC()) {
+			slog.InfoContext(ctx, "refresh token verification rejected: expired or revoked", "refresh_token_id", tokenObj.RefreshTokenId)
 			c.Ctx.Output.SetStatus(401)
 			c.Data["json"] = responsesDTOs.StringResponseDTO{
 				StatusCode: 605,
@@ -1441,6 +1374,7 @@ func (c *AuthenticationController) VerifyToken() {
 		}
 
 		if tokenObj.User.UserId != requestUser.UserId {
+			slog.WarnContext(ctx, "refresh token verification rejected: token belongs to another user", "refresh_token_id", tokenObj.RefreshTokenId, "user_id", requestUser.UserId)
 			c.Ctx.Output.SetStatus(401)
 			c.Data["json"] = responsesDTOs.StringResponseDTO{
 				StatusCode: 605,
@@ -1456,7 +1390,7 @@ func (c *AuthenticationController) VerifyToken() {
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: tokenObj.User, StatusDesc: message}
 		c.Data["json"] = resp
 	} else {
-		logs.Error("Error validating token...", err.Error())
+		slog.InfoContext(ctx, "error validating refresh token", logger.Err(err))
 		statusCode = 703
 		var resp = responsesDTOs.UserResponseDTO{StatusCode: statusCode, User: nil, StatusDesc: message}
 		c.Data["json"] = resp
@@ -1472,18 +1406,17 @@ func (c *AuthenticationController) VerifyToken() {
 // @Failure 403 body is empty
 // @router /customer-token/check [post]
 func (c *AuthenticationController) CheckCustomerTokenExpiry() {
+	ctx := c.reqCtx()
 	var q requestsDTOs.StringRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Info("About to verify token ", q.Value)
+	slog.InfoContext(ctx, "customer token check requested")
 
 	if token, err := functions.GetCustomerAccessTokenClaims(q.Value); err == nil {
 		currentTime := time.Now().Unix()
-		logs.Info("Current time: ", currentTime, " Token expiry: ", token.Exp)
 
 		if token.Exp > currentTime {
-			logs.Info("Token is still valid. Customer is ", token.CustomerID)
-			logs.Info("Customer name is ", token.FullName, " and customer number is ", token.CustomerNumber)
+			slog.InfoContext(ctx, "customer token is valid", "customer_id", token.CustomerID)
 
 			var resp = responsesDTOs.CustomerAccessTokenResponseDTO{StatusCode: 200, Result: &responsesDTOs.CustomerAccessTokenData{
 				CustomerID:     token.CustomerID,
@@ -1499,13 +1432,13 @@ func (c *AuthenticationController) CheckCustomerTokenExpiry() {
 			}, StatusDesc: "Token is valid"}
 			c.Data["json"] = resp
 		} else {
-			logs.Info("Token has expired. Expiry time: ", token.Exp)
+			slog.InfoContext(ctx, "customer token has expired", "customer_id", token.CustomerID, "expired_at", token.Exp)
 			var resp = responsesDTOs.CustomerAccessTokenResponseDTO{StatusCode: 605, Result: nil, StatusDesc: "Token has expired"}
 			c.Data["json"] = resp
 		}
 
 	} else {
-		logs.Error("Error validating token...", err.Error())
+		slog.InfoContext(ctx, "error validating customer token", logger.Err(err))
 		var resp = responsesDTOs.CustomerAccessTokenResponseDTO{StatusCode: 703, Result: nil, StatusDesc: "Error validating token"}
 		c.Data["json"] = resp
 	}
@@ -1523,15 +1456,13 @@ func (c *AuthenticationController) VerifyCustomerToken() {
 	var q requestsDTOs.VerifyTokenReq
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Info("About to verify token ", q.Token)
+	logs.Info("Verify customer token request received")
 
 	statusCode := 608
 	message := "Unable to verify token"
 
 	if tokenObj, err := models.GetUserTokensByToken(q.Token); err == nil {
-		logs.Info("Token object is ", tokenObj)
 		if plainText, err := functions.GetAESDecrypted(tokenObj.Token, tokenObj.Nonce); err == nil {
-			logs.Info("Decrypted token is ", plainText)
 
 			splitText := strings.Split(plainText, "__")
 
@@ -1543,7 +1474,6 @@ func (c *AuthenticationController) VerifyCustomerToken() {
 			}
 
 			if user, err := models.GetUsersByUsername(email); err == nil {
-				logs.Info("User found is ", user)
 				logs.Info("User was created on ", user.DateCreated)
 				statusCode = 200
 				message = "Successfully validated"
@@ -1581,15 +1511,13 @@ func (c *AuthenticationController) GenerateInviteToken() {
 	var q requestsDTOs.EncryptInviteRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Info("About to generate token ", q.Email, " and ", q.Role)
+	logs.Info("Generate invite token request received")
 	rawString := q.Email + "___" + q.Role
 
 	// ikey, _ := functions.GenerateKey()
 
 	if token, nonce, err := functions.GetAESEncrypted(rawString); err == nil {
 
-		logs.Info("Token generated is ", token)
-		logs.Info("Nonce generated is ", nonce)
 		// logs.Info("Key generated is ", string(ikey[:]))
 
 		var userToken models.UserTokens = models.UserTokens{Token: token, Nonce: nonce, ExpiryDate: time.Now().Add(4 * time.Hour), Active: 1, DateCreated: time.Now(), DateModified: time.Now(), CreatedBy: 1, ModifiedBy: 1}
@@ -1623,15 +1551,12 @@ func (c *AuthenticationController) VerifyInviteToken() {
 	var q requestsDTOs.DecryptRequestDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &q)
 
-	logs.Info("About to verify token ", q.Token)
+	logs.Info("Verify invite token request received")
 
 	// ikey, _ := functions.GenerateKey()
 
 	if token, err := functions.GetAESDecrypted(q.Token, q.Nonce); err == nil {
-		logs.Info("Token is ", string(token))
 		splitToken := strings.Split(string(token), "___")
-
-		logs.Info("Split Token is ", splitToken[0], " and ", splitToken[1])
 
 		var token responsesDTOs.TokenDestructureResponseDTO = responsesDTOs.TokenDestructureResponseDTO{Email: splitToken[0], RoleId: splitToken[1]}
 
@@ -1675,22 +1600,26 @@ func (c *AuthenticationController) VerifyInviteToken() {
 // @Failure 403 body is empty
 // @router /log-out [post]
 func (c *AuthenticationController) Logout() {
+	ctx := c.reqCtx()
 	var v requestsDTOs.TokenDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Token)
+	slog.InfoContext(ctx, "user logout requested")
 
-	if a, err := models.GetAccessTokensByToken(v.Token); err == nil {
+	if a, err := models.GetAccessTokensByTokenCtx(ctx, v.Token); err == nil {
 		a.ExpiresAt = time.Now()
 		a.Revoked = true
-		if err := models.UpdateAccessTokensById(a); err == nil {
+		if err := models.UpdateAccessTokensByIdCtx(ctx, a); err == nil {
+			slog.InfoContext(ctx, "user logged out", "access_token_id", a.AccessTokenId)
 			c.Ctx.Output.SetStatus(200)
 
 			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "", StatusDesc: "User log out complete"}
 			c.Data["json"] = resp
+		} else {
+			slog.ErrorContext(ctx, "error revoking access token on logout", "access_token_id", a.AccessTokenId, logger.Err(err))
 		}
 	} else {
-		logs.Error(err.Error())
+		slog.InfoContext(ctx, "user logout failed: access token not found", logger.Err(err))
 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Invalid request"}
 		c.Data["json"] = resp
 	}
@@ -1705,22 +1634,26 @@ func (c *AuthenticationController) Logout() {
 // @Failure 403 body is empty
 // @router /expire-customer-token [post]
 func (c *AuthenticationController) ExpireCustomerToken() {
+	ctx := c.reqCtx()
 	var v requestsDTOs.TokenDTO
 	json.Unmarshal(c.Ctx.Input.RequestBody, &v)
 
-	logs.Info("Received ", v.Token)
+	slog.InfoContext(ctx, "customer token expiry requested")
 
-	if a, err := models.GetCustomer_access_tokensByToken(v.Token); err == nil {
+	if a, err := models.GetCustomer_access_tokensByTokenCtx(ctx, v.Token); err == nil {
 		a.ExpiresAt = time.Now()
 		a.Revoked = true
-		if err := models.UpdateCustomer_access_tokensById(a); err == nil {
+		if err := models.UpdateCustomer_access_tokensByIdCtx(ctx, a); err == nil {
+			slog.InfoContext(ctx, "customer token expired", "customer_access_token_id", a.Id)
 			c.Ctx.Output.SetStatus(200)
 
 			var resp = responsesDTOs.StringResponseDTO{StatusCode: 200, Value: "", StatusDesc: "Customer expired"}
 			c.Data["json"] = resp
+		} else {
+			slog.ErrorContext(ctx, "error expiring customer token", "customer_access_token_id", a.Id, logger.Err(err))
 		}
 	} else {
-		logs.Error(err.Error())
+		slog.InfoContext(ctx, "customer token expiry failed: token not found", logger.Err(err))
 		var resp = responsesDTOs.StringResponseDTO{StatusCode: 605, Value: "", StatusDesc: "Invalid request"}
 		c.Data["json"] = resp
 	}
